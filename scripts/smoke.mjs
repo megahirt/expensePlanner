@@ -175,6 +175,21 @@ try {
   const persisted = await page.locator('.trow .cat', { hasText: 'Kids & School' }).count();
   check('manual category persists across a reload', persisted === 1, `${persisted} found`);
 
+  // ---- Settings: rules and categories ----
+  await page.click('.nav button:has-text("Settings")');
+  await page.waitForSelector('.chips .chip');
+  check(
+    'seeded categories are listed',
+    (await page.locator('.chips .chip').count()) >= 10,
+    `${await page.locator('.chips .chip').count()} categories`,
+  );
+
+  await page.click('button:has-text("Re-run rules on all transactions")');
+  await page.waitForSelector('.card .callout.ok', { timeout: 5_000 });
+  const rerun = (await page.textContent('.card .callout.ok')) ?? '';
+  // The row categorized by hand earlier must be reported as left alone.
+  check('re-running rules leaves hand-categorized rows alone', /left alone/.test(rerun), rerun.trim());
+
   // IndexedDB must be usable from the extension origin — everything depends on it.
   const idbOk = await page.evaluate(async () => {
     return await new Promise((res) => {

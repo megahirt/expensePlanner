@@ -429,3 +429,29 @@ button.cell.linky:hover { color: var(--accent); }
   resize: vertical;
 }
 tr.muted td { opacity: 0.6; text-decoration: line-through; }
+
+/* ---- settings ---- */
+.actions.left { justify-content: flex-start; align-items: center; flex-wrap: wrap; }
+.actions .grow { flex: 1; min-width: 200px; font: inherit; padding: 8px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); }
+.card > h2 + .dim { margin-top: -4px; }
+.card section + section { margin-top: 20px; }
+.nowrap { white-space: nowrap; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 16px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  border-radius: 99px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.chip:hover { border-color: var(--accent); }
+.chip i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+.chip-count { color: var(--text-faint); font-size: 11px; font-variant-numeric: tabular-nums; }
+.chip.editing input { font: inherit; font-size: 13px; border: 0; background: none; color: var(--text); width: 120px; }
+table.preview tr.muted td { opacity: 0.5; text-decoration: none; }
