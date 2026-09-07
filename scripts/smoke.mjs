@@ -241,6 +241,34 @@ try {
   // The row categorized by hand earlier must be reported as left alone.
   check('re-running rules leaves hand-categorized rows alone', /left alone/.test(rerun), rerun.trim());
 
+  // ---- Export round trip through the real UI ----
+  // Downloads are captured rather than written to disk, so this verifies the
+  // actual file the user would get.
+  const downloadPromise = page.waitForEvent('download', { timeout: 15_000 });
+  await page.click('button:has-text("Export")');
+  const download = await downloadPromise;
+  const csvPath = join(userDataDir, download.suggestedFilename());
+  await download.saveAs(csvPath);
+
+  const exported = readFileSync(csvPath, 'utf8');
+  check('CSV export starts with a BOM for Excel', exported.charCodeAt(0) === 0xfeff);
+  check(
+    'CSV export carries categories and effective amounts',
+    /effective_amount/.test(exported) && /Groceries|Shopping|Kids & School/.test(exported),
+  );
+  const exportedRows = exported.trim().split(/\r\n/).length - 1;
+  check('CSV export contains every transaction', exportedRows === 10, `${exportedRows} rows`);
+
+  // Merging the file we just exported must add nothing: same dedupe path.
+  await page.setInputFiles('.transfer-grid input[type=file]', csvPath);
+  await page.waitForSelector('.transfer-result', { timeout: 10_000 });
+  const mergeMsg = (await page.textContent('.transfer-result')) ?? '';
+  check(
+    'merging our own export adds nothing',
+    /0 added/.test(mergeMsg) && /already present/.test(mergeMsg),
+    mergeMsg.trim(),
+  );
+
   // IndexedDB must be usable from the extension origin — everything depends on it.
   const idbOk = await page.evaluate(async () => {
     return await new Promise((res) => {
