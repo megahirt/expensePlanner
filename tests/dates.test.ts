@@ -37,9 +37,17 @@ describe('detectDateFormat', () => {
     expect(detectDateFormat(['2025-01-05', '2025-02-06'])).toBe('YYYY-MM-DD');
   });
 
-  it('refuses to guess when no format explains every sample', () => {
-    // A partial match means half the column would be silently mangled.
-    expect(detectDateFormat(['2025-01-05', 'garbage'])).toBeNull();
+  it('ignores junk values so a footer row does not defeat detection', () => {
+    // Real exports append "Total" rows and stray notes. That row still fails
+    // later as a visible row-level error; it just does not veto the column.
+    expect(detectDateFormat(['2025-01-05', '2025-02-06', 'Total'])).toBe('YYYY-MM-DD');
+  });
+
+  it('refuses to guess when the column genuinely mixes conventions', () => {
+    // No single format explains both, and picking one would silently misdate
+    // half the rows.
+    expect(detectDateFormat(['01/15/2025', '2025-01-05'])).toBeNull();
+    expect(detectDateFormat(['garbage', 'more garbage'])).toBeNull();
     expect(detectDateFormat([])).toBeNull();
   });
 });

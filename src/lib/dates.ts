@@ -110,34 +110,40 @@ function expandTwoDigitYear(v: number): number {
 /**
  * Guess the date format used by a column of sample values.
  *
- * Returns the format that parses the most samples. Ties are broken toward the
- * earlier entry in SUPPORTED_FORMATS, which puts ISO and US-style first — the
- * right default for the US bank exports this tool targets. Crucially, a sample
- * containing a day > 12 disambiguates MM/DD from DD/MM, so a realistic column
- * usually resolves unambiguously; the UI still shows the guess for confirmation.
+ * Values that no supported format can read — a "Total" footer row, a stray
+ * blank, a note the bank appended — are set aside first, so one piece of junk
+ * doesn't stop us recognising an otherwise obvious column. Those rows still
+ * fail later, individually and visibly, as row-level import errors.
+ *
+ * The winning format must then explain *every* remaining sample. A partial
+ * match means the column mixes conventions, or that we picked wrong, and half
+ * the rows would be silently misdated — so we return null and let the wizard
+ * ask rather than corrupt the data.
+ *
+ * Ties are broken toward the earlier entry in SUPPORTED_FORMATS, which puts ISO
+ * and US-style first. In practice a realistic column disambiguates itself: any
+ * single day past the 12th settles MM/DD versus DD/MM.
  */
 export function detectDateFormat(samples: readonly string[]): DateFormat | null {
   const usable = samples.map((s) => s?.trim()).filter((s): s is string => Boolean(s));
   if (usable.length === 0) return null;
 
-  let best: { format: DateFormat; score: number } | null = null;
-  for (const format of SUPPORTED_FORMATS) {
-    let score = 0;
-    for (const sample of usable) {
-      try {
-        parseDate(sample, format);
-        score++;
-      } catch {
-        /* not this format */
-      }
+  const canParse = (sample: string, format: DateFormat): boolean => {
+    try {
+      parseDate(sample, format);
+      return true;
+    } catch {
+      return false;
     }
-    if (score > 0 && (!best || score > best.score)) best = { format, score };
-  }
+  };
 
-  // Require the winner to handle every sample; a partial match means we guessed
-  // wrong and should ask rather than corrupt half the rows.
-  if (!best || best.score < usable.length) return best && best.score === usable.length ? best.format : null;
-  return best.format;
+  const recognisable = usable.filter((sample) => SUPPORTED_FORMATS.some((f) => canParse(sample, f)));
+  if (recognisable.length === 0) return null;
+
+  for (const format of SUPPORTED_FORMATS) {
+    if (recognisable.every((sample) => canParse(sample, format))) return format;
+  }
+  return null;
 }
 
 /** Days between two ISO dates (absolute). */
