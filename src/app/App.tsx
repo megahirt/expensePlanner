@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { StoreProvider, useStore } from './store';
 import { ImportRoute } from './routes/Import';
+import { TransactionsRoute } from './routes/Transactions';
+import { emptyFilters, type Filters } from '@/lib/filter';
 
 const ROUTES = ['Dashboard', 'Transactions', 'Import', 'Review', 'Settings'] as const;
 export type Route = (typeof ROUTES)[number];
@@ -14,7 +16,11 @@ export function App() {
 }
 
 function Shell() {
-  const [route, setRoute] = useState<Route>('Import');
+  const [route, setRoute] = useState<Route>('Transactions');
+  // Filters live here rather than inside the table so a chart click on the
+  // dashboard can navigate to Transactions with the filter already applied,
+  // and the two views can never disagree about what is being shown.
+  const [filters, setFilters] = useState<Filters>(emptyFilters());
   const { ready, transactions } = useStore();
 
   return (
@@ -35,13 +41,31 @@ function Shell() {
           <span>All data stays on this computer</span>
         </div>
       </header>
-      <main className="main">{ready ? <RouteView route={route} /> : <Loading />}</main>
+      <main className="main">
+        {ready ? (
+          <RouteView route={route} filters={filters} setFilters={setFilters} />
+        ) : (
+          <div className="card empty">
+            <p className="dim">Opening your data\u2026</p>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
 
-function RouteView({ route }: { route: Route }) {
+function RouteView({
+  route,
+  filters,
+  setFilters,
+}: {
+  route: Route;
+  filters: Filters;
+  setFilters: (f: Filters) => void;
+}) {
   switch (route) {
+    case 'Transactions':
+      return <TransactionsRoute filters={filters} onFiltersChange={setFilters} />;
     case 'Import':
       return <ImportRoute />;
     default:
@@ -52,12 +76,4 @@ function RouteView({ route }: { route: Route }) {
         </div>
       );
   }
-}
-
-function Loading() {
-  return (
-    <div className="card empty">
-      <p className="dim">Opening your data…</p>
-    </div>
-  );
 }

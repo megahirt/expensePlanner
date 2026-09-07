@@ -13,6 +13,8 @@
  * a lifetime of household transactions is negligible.
  */
 
+import { trailingCityLength } from './cities';
+
 const FNV_PRIME = 1099511628211n;
 const FNV_OFFSET_A = 14695981039346656037n;
 const FNV_OFFSET_B = 14695981039346656039n;
@@ -136,16 +138,10 @@ export function normalizeMerchant(description: string): string {
   s = s.replace(/\b(store|str|no|num)\.?\s*\d+\b/gi, ' ');
   s = s.replace(/\s+\d{3,}\b/g, ' ');
 
-  // Trailing "CITY ST". Card feeds overwhelmingly format descriptions as
-  // MERCHANT CITY ST, and leaving the city in would split one merchant into one
-  // entry per location — "Trader Joes Seattle" and "Trader Joes Portland" would
-  // never group or share a rule, which defeats the point of normalizing at all.
-  // So a valid trailing US state code takes the preceding word with it, but only
-  // when at least two words survive; that guard keeps "THE DINER WA" from being
-  // eroded down to "The". The cost is that a merchant whose real name ends in a
-  // word before a state code ("BLUE BOTTLE COFFEE CA") loses that last word —
-  // still unique and still consistent, which is what grouping needs, and the
-  // user can override any merchant with a rule.
+  // Trailing "CITY ST". Card feeds format descriptions as MERCHANT CITY ST, and
+  // leaving the city in splits one merchant into one entry per location:
+  // "Trader Joes Seattle" and "Trader Joes Portland" would never group together
+  // or share a rule, which defeats the point of normalizing at all.
   s = stripTrailingLocation(s);
 
   s = s
@@ -163,13 +159,27 @@ const US_STATE_CODES = new Set(
     .split(' '),
 );
 
+/**
+ * Remove a trailing state code, and the city before it when that word is
+ * actually a known place.
+ *
+ * Recognising the city by name rather than by position is what lets
+ * "STARBUCKS SEATTLE WA" become "Starbucks" while "THE DINER WA" keeps its
+ * name — position alone cannot tell those apart, and either default gets one
+ * of them wrong. A city missing from the list simply stays in the merchant
+ * name: still consistent, just more verbose.
+ */
 function stripTrailingLocation(input: string): string {
   const words = input.trim().split(/\s+/).filter(Boolean);
   const last = words[words.length - 1];
   if (!last || !US_STATE_CODES.has(last.toUpperCase())) return input;
 
   words.pop();
-  if (words.length >= 3) words.pop(); // drop the city too
+  const cityWords = trailingCityLength(words);
+  // Never strip away the entire name: a merchant literally called "Chicago"
+  // should keep it.
+  if (cityWords > 0 && words.length > cityWords) words.splice(words.length - cityWords, cityWords);
+
   return words.join(' ');
 }
 
