@@ -470,3 +470,15 @@ table.preview tr.muted td { opacity: 0.5; text-decoration: none; }
   border-radius: 4px;
 }
 .card .stack { margin-top: 14px; }
+
+/* ---- data transfer ---- */
+.transfer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 22px;
+  margin: 16px 0;
+}
+.transfer-grid h3 { font-size: 14px; margin: 0 0 6px; }
+.transfer-grid p { margin: 0 0 10px; font-size: 13px; }
+.transfer-grid .checkbox { display: flex; margin-bottom: 6px; }
+.transfer-grid .actions { margin-top: 10px; }

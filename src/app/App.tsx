@@ -70,7 +70,7 @@ function RouteView({
     case 'Import':
       return <ImportRoute />;
     case 'Settings':
-      return <SettingsRoute />;
+      return <SettingsRoute filters={filters} />;
     default:
       return (
         <div className="card empty">

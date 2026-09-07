@@ -13,8 +13,10 @@ import { describeRule } from '@/categorize/engine';
 import { randomId } from '@/lib/ids';
 import type { Category, Rule, RuleMatcher } from '@/types/models';
 import { useStore } from '../store';
+import { DataTransfer } from '../components/DataTransfer';
+import type { Filters } from '@/lib/filter';
 
-export function SettingsRoute() {
+export function SettingsRoute({ filters }: { filters: Filters }) {
   const { rules, categories, transactions, settings, saveRules, saveCategory, saveSettings, rerunRules, refresh } =
     useStore();
   const [rerunResult, setRerunResult] = useState<string | null>(null);
@@ -177,6 +179,8 @@ export function SettingsRoute() {
           from.
         </p>
       </section>
+
+      <DataTransfer filters={filters} />
 
       <section className="card">
         <h2>Your data</h2>

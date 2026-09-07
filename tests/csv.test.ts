@@ -10,7 +10,7 @@ describe('parseCsvText', () => {
   it('reads quoted fields and strips a UTF-8 BOM', () => {
     // Excel writes a BOM; left in place it becomes part of the first header
     // name and every mapping lookup silently misses.
-    const parsed = parseCsvText('﻿Date,Amount\n2025-01-01,"1,234.56"\n');
+    const parsed = parseCsvText('\uFEFFDate,Amount\n2025-01-01,"1,234.56"\n');
     expect(parsed.headers).toEqual(['Date', 'Amount']);
     expect(parsed.records[0]).toEqual({ Date: '2025-01-01', Amount: '1,234.56' });
   });
