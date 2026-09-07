@@ -1,0 +1,6 @@
+"Date","Type","Check #","Description","Withdrawal","Deposit","RunningBalance"
+"03/04/2025","ACH","","TRADER JOES #123 SEATTLE WA","$45.99","","$3,201.44"
+"03/05/2025","ACH","","SHELL OIL 574412 SEATTLE WA","$52.10","","$3,149.34"
+"03/06/2025","DEP","","PAYROLL DIRECT DEP ACME CORP","","$2,450.00","$5,599.34"
+"03/07/2025","ACH","","STARBUCKS STORE 08812 SEATTLE WA","$5.75","","$5,593.59"
+"03/07/2025","ACH","","STARBUCKS STORE 08812 SEATTLE WA","$5.75","","$5,587.84"

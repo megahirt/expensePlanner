@@ -85,6 +85,44 @@ try {
   );
   check('no page errors', pageErrors.length === 0, pageErrors.join(' | '));
 
+  // ---- End-to-end import through the real UI ----
+  // A unit test can prove the parser works; only this can prove the wired-up
+  // app does. Drive the actual file input, mapping wizard and import button.
+  await page.click('.nav button:has-text("Import")');
+  await page.waitForSelector('.dropzone');
+
+  const fixture = join(root, 'tests', 'fixtures', 'schwab-checking.csv');
+  await page.setInputFiles('.dropzone input[type=file]', fixture);
+
+  await page.waitForSelector('.wizard', { timeout: 10_000 });
+  check(
+    'mapping wizard detects the columns',
+    (await page.locator('.preview tbody tr').count()) > 0,
+    `${await page.locator('.preview tbody tr').count()} preview rows`,
+  );
+
+  await page.click('.actions button.primary');
+  await page.waitForSelector('.callout.ok', { timeout: 10_000 });
+  const summary = (await page.textContent('.callout.ok')) ?? '';
+  check('import reports rows added', /5 added/.test(summary), summary.replace(/\s+/g, ' ').trim());
+
+  // Re-importing the identical file must add nothing. This is the property the
+  // monthly refresh workflow depends on, verified against the real database.
+  await page.setInputFiles('.dropzone input[type=file]', fixture);
+  await page.waitForSelector('.wizard', { timeout: 10_000 });
+
+  const notes = (await page.textContent('.notes')) ?? '';
+  check('saved mapping is reused on the second import', /saved mapping/i.test(notes), notes.trim());
+
+  await page.click('.actions button.primary');
+  await page.waitForSelector('.callout.ok', { timeout: 10_000 });
+  const second = (await page.textContent('.callout.ok')) ?? '';
+  check(
+    're-importing the same file adds nothing',
+    /0 added/.test(second) && /5 already present/.test(second),
+    second.replace(/\s+/g, ' ').trim(),
+  );
+
   // IndexedDB must be usable from the extension origin — everything depends on it.
   const idbOk = await page.evaluate(async () => {
     return await new Promise((res) => {
