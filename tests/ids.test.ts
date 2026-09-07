@@ -71,6 +71,26 @@ describe('normalizeMerchant', () => {
     expect(normalizeMerchant('SAFEWAY STORE 01234 03/04')).toBe('Safeway');
   });
 
+  it('groups one merchant across locations by dropping known city names', () => {
+    // Without this, every branch becomes its own merchant and a rule written
+    // for one shop silently misses the same shop in the next town.
+    expect(normalizeMerchant('STARBUCKS STORE 08812 SEATTLE WA')).toBe('Starbucks');
+    expect(normalizeMerchant('STARBUCKS STORE 00221 BELLEVUE WA')).toBe('Starbucks');
+    expect(normalizeMerchant('CHIPOTLE 1420 SAN FRANCISCO CA')).toBe('Chipotle');
+  });
+
+  it('keeps trailing words that are not places', () => {
+    // Position alone cannot tell a city from part of a name; recognising the
+    // word is what keeps these intact.
+    expect(normalizeMerchant('THE DINER WA')).toBe('The Diner');
+    expect(normalizeMerchant('BLUE BOTTLE COFFEE CA')).toBe('Blue Bottle Coffee');
+  });
+
+  it('never strips a merchant down to nothing', () => {
+    // A shop genuinely called "Chicago" keeps its name.
+    expect(normalizeMerchant('CHICAGO IL')).toBe('Chicago');
+  });
+
   it('collapses Amazon aliases onto one merchant', () => {
     expect(normalizeMerchant('AMZN Mktp US*RT4G82OI3')).toBe('Amazon');
     expect(normalizeMerchant('AMAZON.COM*2H4JK9DL1')).toBe('Amazon');

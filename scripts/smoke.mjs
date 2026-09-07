@@ -123,6 +123,58 @@ try {
     second.replace(/\s+/g, ' ').trim(),
   );
 
+  // ---- Transactions browser ----
+  await page.click('.nav button:has-text("Transactions")');
+  await page.waitForSelector('.trow', { timeout: 10_000 });
+
+  const rowCount = await page.locator('.trow').count();
+  check('table lists the imported rows', rowCount === 5, `${rowCount} rows`);
+
+  // Starter rules should have categorized the obvious merchants on import.
+  const categorized = await page.locator('.trow .cat').count();
+  check('starter rules categorized rows on import', categorized >= 3, `${categorized} categorized`);
+
+  await page.fill('.filterbar .search', 'trader');
+  await page.waitForFunction(() => document.querySelectorAll('.trow').length === 1, null, {
+    timeout: 5_000,
+  });
+  check('search filters the table', (await page.locator('.trow').count()) === 1);
+  await page.fill('.filterbar .search', '');
+  await page.waitForFunction(() => document.querySelectorAll('.trow').length === 5, null, {
+    timeout: 5_000,
+  });
+
+  // A deposit is money in and must not be counted as spending.
+  await page.selectOption('.filter-row select >> nth=2', { label: 'Money in' });
+  await page.waitForFunction(() => document.querySelectorAll('.trow').length === 1, null, {
+    timeout: 5_000,
+  });
+  check(
+    'direction filter separates money in from money out',
+    (await page.locator('.trow').count()) === 1,
+    `${await page.locator('.trow').count()} money-in rows`,
+  );
+  await page.selectOption('.filter-row select >> nth=2', { label: 'Everything' });
+
+  // Open a row and set a category by hand; it must persist across a reload.
+  await page.click('.trow .cell.merchant >> nth=0');
+  await page.waitForSelector('.drawer');
+  await page.selectOption('.drawer .category-picker', { label: 'Kids & School' });
+  await page.waitForSelector('.drawer .callout.ok', { timeout: 5_000 });
+  check(
+    'manual categorization offers to become a rule',
+    await page.isVisible('.drawer .callout.ok'),
+    (await page.textContent('.drawer .callout.ok'))?.replace(/\s+/g, ' ').trim() ?? '',
+  );
+  await page.click('.drawer .callout.ok button.link'); // "Just this one"
+  await page.click('.drawer header button.link');
+
+  await page.reload({ waitUntil: 'load' });
+  await page.click('.nav button:has-text("Transactions")');
+  await page.waitForSelector('.trow');
+  const persisted = await page.locator('.trow .cat', { hasText: 'Kids & School' }).count();
+  check('manual category persists across a reload', persisted === 1, `${persisted} found`);
+
   // IndexedDB must be usable from the extension origin — everything depends on it.
   const idbOk = await page.evaluate(async () => {
     return await new Promise((res) => {
