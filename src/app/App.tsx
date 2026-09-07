@@ -3,6 +3,7 @@ import { StoreProvider, useStore } from './store';
 import { ImportRoute } from './routes/Import';
 import { TransactionsRoute } from './routes/Transactions';
 import { SettingsRoute } from './routes/Settings';
+import { DashboardRoute } from './routes/Dashboard';
 import { emptyFilters, type Filters } from '@/lib/filter';
 
 const ROUTES = ['Dashboard', 'Transactions', 'Import', 'Review', 'Settings'] as const;
@@ -17,7 +18,7 @@ export function App() {
 }
 
 function Shell() {
-  const [route, setRoute] = useState<Route>('Transactions');
+  const [route, setRoute] = useState<Route>('Dashboard');
   // Filters live here rather than inside the table so a chart click on the
   // dashboard can navigate to Transactions with the filter already applied,
   // and the two views can never disagree about what is being shown.
@@ -44,7 +45,7 @@ function Shell() {
       </header>
       <main className="main">
         {ready ? (
-          <RouteView route={route} filters={filters} setFilters={setFilters} />
+          <RouteView route={route} filters={filters} setFilters={setFilters} onNavigate={setRoute} />
         ) : (
           <div className="card empty">
             <p className="dim">Opening your data\u2026</p>
@@ -59,12 +60,23 @@ function RouteView({
   route,
   filters,
   setFilters,
+  onNavigate,
 }: {
   route: Route;
   filters: Filters;
   setFilters: (f: Filters) => void;
+  onNavigate: (r: Route) => void;
 }) {
   switch (route) {
+    case 'Dashboard':
+      return (
+        <DashboardRoute
+          onDrillDown={(next) => {
+            setFilters(next);
+            onNavigate('Transactions');
+          }}
+        />
+      );
     case 'Transactions':
       return <TransactionsRoute filters={filters} onFiltersChange={setFilters} />;
     case 'Import':

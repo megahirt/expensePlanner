@@ -241,9 +241,38 @@ try {
   // The row categorized by hand earlier must be reported as left alone.
   check('re-running rules leaves hand-categorized rows alone', /left alone/.test(rerun), rerun.trim());
 
+  // ---- Dashboard ----
+  await page.click('.nav button:has-text("Dashboard")');
+  await page.waitForSelector('.stat-row');
+  check(
+    'dashboard shows headline figures',
+    (await page.locator('.stat').count()) === 4,
+    `${await page.locator('.stat').count()} tiles`,
+  );
+
+  const headline = (await page.textContent('.stat-value')) ?? '';
+  check('headline figure is a real number, not zero', !/^-?\$0\.00$/.test(headline.trim()), headline.trim());
+
+  check('spending chart renders bars', (await page.locator('.chart .bar').count()) > 0);
+  check('category breakdown renders', (await page.locator('.ranked-row').count()) > 0);
+
+  // Clicking a category must land on the transactions table already filtered.
+  const firstCategory = (await page.textContent('.ranked-row .ranked-label')) ?? '';
+  await page.click('.ranked-row');
+  await page.waitForSelector('.trow', { timeout: 5_000 });
+  const activeCategory = await page.inputValue('.filter-row select >> nth=1');
+  check(
+    'clicking a category drills through to its transactions',
+    activeCategory !== '',
+    `${firstCategory.trim()} -> ${activeCategory}`,
+  );
+  await page.click('button:has-text("Clear filters")');
+
   // ---- Export round trip through the real UI ----
   // Downloads are captured rather than written to disk, so this verifies the
   // actual file the user would get.
+  await page.click('.nav button:has-text("Settings")');
+  await page.waitForSelector('.transfer-grid');
   const downloadPromise = page.waitForEvent('download', { timeout: 15_000 });
   await page.click('button:has-text("Export")');
   const download = await downloadPromise;

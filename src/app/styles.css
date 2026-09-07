@@ -482,3 +482,80 @@ table.preview tr.muted td { opacity: 0.5; text-decoration: none; }
 .transfer-grid p { margin: 0 0 10px; font-size: 13px; }
 .transfer-grid .checkbox { display: flex; margin-bottom: 6px; }
 .transfer-grid .actions { margin-top: 10px; }
+
+/* ---- charts ----
+   One hue, validated against each surface: #008300 passes lightness, chroma and
+   3:1 contrast on the light surface; #199e70 does the same on the dark one.
+   No chart here encodes identity by colour — the axis or row label names the
+   thing — so there is no colour-separation problem to solve. */
+:root {
+  --chart-series: #008300;
+  --chart-series-hover: #006b00;
+  --chart-track: #ececea;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --chart-series: #199e70;
+    --chart-series-hover: #22b981;
+    --chart-track: #2c2c33;
+  }
+}
+:root[data-theme='dark'] {
+  --chart-series: #199e70;
+  --chart-series-hover: #22b981;
+  --chart-track: #2c2c33;
+}
+
+.chart { margin: 8px 0 0; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart .grid { stroke: var(--border); stroke-width: 1; }
+.chart .axis-line { stroke: var(--border-strong); stroke-width: 1; }
+.chart .axis { fill: var(--text-faint); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.chart .value { fill: var(--text); font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.chart .bar { fill: var(--chart-series); transition: fill 0.1s; }
+.chart .bar.active { fill: var(--chart-series-hover); }
+.chart .hit { cursor: pointer; }
+.chart-note { font-size: 12px; margin: 10px 0 0; }
+
+.ranked { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.ranked-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 1.1fr) minmax(60px, 2fr) 84px 40px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  padding: 5px 6px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+button.ranked-row:hover { background: var(--surface-2); }
+button.ranked-row:hover .ranked-fill { background: var(--chart-series-hover); }
+.ranked-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.ranked-track { background: var(--chart-track); border-radius: var(--radius-sm); height: 14px; overflow: hidden; }
+.ranked-fill { display: block; height: 100%; background: var(--chart-series); border-radius: var(--radius-sm); min-width: 2px; }
+.ranked-value { text-align: right; font-size: 13px; }
+.ranked-share { text-align: right; font-size: 12px; }
+
+/* ---- stats ---- */
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+}
+.stat-label { font-size: 11.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.stat-value { font-size: 25px; font-weight: 600; letter-spacing: -0.02em; margin: 4px 0 2px; }
+.stat-value.up { color: var(--danger); }
+.stat-value.down { color: var(--accent); }
+.stat-sub { font-size: 12px; }
+
+.two-up { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; }
+button.nudge { text-align: left; cursor: pointer; font: inherit; width: 100%; }
+button.nudge:hover { filter: brightness(0.98); }
