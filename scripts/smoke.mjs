@@ -10,7 +10,7 @@
 import { chromium } from 'playwright';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { existsSync, mkdtempSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -226,6 +226,73 @@ try {
   await page.uncheck('.checkbox:has-text("Show returned") input');
   await page.selectOption('.filter-row select >> nth=0', { label: 'All accounts' });
 
+  // ---- Review: an Amazon order and its card charge are one expense ----
+  // The Amazon fixture's first order is $78.42 on 2025-03-04. Import a card
+  // statement containing the matching charge and confirm the two are not
+  // counted twice.
+  await page.click('.nav button:has-text("Import")');
+  await page.waitForSelector('.dropzone');
+
+  const cardCsv = join(userDataDir, 'visa.csv');
+  writeFileSync(
+    cardCsv,
+    'Date,Description,Amount\n2025-03-05,AMZN Mktp US*RT4G82OI3,-78.42\n2025-03-06,SAFEWAY 1882,-31.10\n',
+  );
+  await page.setInputFiles('.dropzone input[type=file]', cardCsv);
+  await page.waitForSelector('.wizard');
+  await page.fill('.field input[placeholder*="Schwab"]', 'Visa 4242');
+  await page.click('.actions button.primary');
+  await page.waitForSelector('.callout.ok');
+
+  await page.click('.nav button:has-text("Review")');
+  await page.waitForSelector('.candidate', { timeout: 10_000 });
+  const reason = (await page.textContent('.candidate-head')) ?? '';
+  check('the duplicate purchase is proposed for review', /Same purchase/.test(reason), reason.replace(/\s+/g, ' ').trim());
+
+  // Before confirming, the $78.42 is counted twice.
+  await page.click('.nav button:has-text("Transactions")');
+  await page.waitForSelector('.trow');
+  // Isolate the two $78.42 rows by amount rather than by text: the card row and
+  // the Amazon order describe themselves completely differently, which is the
+  // whole reason the link is needed.
+  const isolate = async () => {
+    await page.fill('.field.inline.narrow input >> nth=0', '78.42');
+    await page.fill('.field.inline.narrow input >> nth=1', '78.42');
+    await page.click('.filterbar .search');
+    await page.waitForTimeout(400);
+  };
+  const clearAmounts = async () => {
+    await page.fill('.field.inline.narrow input >> nth=0', '');
+    await page.fill('.field.inline.narrow input >> nth=1', '');
+    await page.click('.filterbar .search');
+    await page.waitForTimeout(400);
+  };
+
+  await isolate();
+  const beforeLink = (await page.textContent('.page-head .subtitle')) ?? '';
+  check(
+    'unlinked, the purchase is counted twice',
+    /\$156\.84/.test(beforeLink),
+    beforeLink.replace(/\s+/g, ' ').trim(),
+  );
+  await clearAmounts();
+
+  await page.click('.nav button:has-text("Review")');
+  await page.waitForSelector('.candidate');
+  await page.click('.candidate button.primary');
+  await page.waitForSelector('.card:has-text("Matched")', { timeout: 10_000 });
+
+  await page.click('.nav button:has-text("Transactions")');
+  await page.waitForSelector('.trow');
+  await isolate();
+  const afterLink = (await page.textContent('.page-head .subtitle')) ?? '';
+  check(
+    'once linked, the purchase is counted once',
+    /\$78\.42/.test(afterLink) && /1 matching row/.test(afterLink),
+    afterLink.replace(/\s+/g, ' ').trim(),
+  );
+  await clearAmounts();
+
   // ---- Settings: rules and categories ----
   await page.click('.nav button:has-text("Settings")');
   await page.waitForSelector('.chips .chip');
@@ -285,8 +352,11 @@ try {
     'CSV export carries categories and effective amounts',
     /effective_amount/.test(exported) && /Groceries|Shopping|Kids & School/.test(exported),
   );
+  // Compare against what the app itself says it holds, so this check does not
+  // go stale every time the fixtures change.
+  const held = Number(((await page.textContent('.topbar-right')) ?? '').match(/([\d,]+) transactions/)?.[1]?.replace(/,/g, '') ?? '0');
   const exportedRows = exported.trim().split(/\r\n/).length - 1;
-  check('CSV export contains every transaction', exportedRows === 10, `${exportedRows} rows`);
+  check('CSV export contains every transaction', exportedRows === held, `${exportedRows} of ${held}`);
 
   // Merging the file we just exported must add nothing: same dedupe path.
   await page.setInputFiles('.transfer-grid input[type=file]', csvPath);
