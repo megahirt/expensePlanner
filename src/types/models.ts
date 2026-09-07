@@ -236,7 +236,21 @@ export function effectiveCents(t: Transaction): number {
   return magnitude <= 0 ? 0 : sign * magnitude;
 }
 
-/** True when a row should be hidden unless "show returned/cancelled" is on. */
+/**
+ * True when a row contributes nothing at all, and so is hidden unless "show
+ * returned and cancelled" is on.
+ *
+ * Defined by what the row is worth, not by its status label. A $89 keyboard
+ * refunded at $82 is *marked* returned, but $7 of it was genuinely spent (the
+ * restocking fee), so hiding it would quietly understate what the household
+ * paid. Only rows worth exactly nothing — cancelled orders, fully refunded
+ * ones, and the non-canonical half of a linked pair — drop out of view.
+ */
 export function isNonSpend(t: Transaction): boolean {
-  return NON_SPEND_STATUSES.has(t.status) || Boolean(t.supersededBy);
+  return effectiveCents(t) === 0;
+}
+
+/** True when a row carries a return, cancellation or link worth flagging. */
+export function hasReturnActivity(t: Transaction): boolean {
+  return NON_SPEND_STATUSES.has(t.status) || t.refundedCents > 0 || Boolean(t.supersededBy);
 }

@@ -84,9 +84,20 @@ describe('applyFilters', () => {
   const ids = (f: Partial<ReturnType<typeof emptyFilters>>) =>
     applyFilters(rows, { ...emptyFilters(), ...f }).map((t) => t.id);
 
-  it('hides returned and cancelled rows by default', () => {
+  it('hides rows that count for nothing by default', () => {
     expect(ids({})).not.toContain('d');
     expect(ids({ showNonSpend: true })).toContain('d');
+  });
+
+  it('keeps a partly-refunded row visible, because part of it was really spent', () => {
+    // $89 charged, $82 refunded: the $7 restocking fee is genuine spending, and
+    // hiding the row would quietly understate what was paid.
+    const partial = [txn({ id: 'p', amountCents: -8900, status: 'returned', refundedCents: 8200 })];
+    expect(applyFilters(partial, emptyFilters())).toHaveLength(1);
+
+    // A fully refunded row is worth nothing, so it does drop out.
+    const full = [txn({ id: 'f', amountCents: -8900, status: 'returned', refundedCents: 8900 })];
+    expect(applyFilters(full, emptyFilters())).toHaveLength(0);
   });
 
   it('filters by date range inclusively', () => {
