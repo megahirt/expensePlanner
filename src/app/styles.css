@@ -559,3 +559,41 @@ button.ranked-row:hover .ranked-fill { background: var(--chart-series-hover); }
 .two-up { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; }
 button.nudge { text-align: left; cursor: pointer; font: inherit; width: 100%; }
 button.nudge:hover { filter: brightness(0.98); }
+
+/* ---- review queue ---- */
+.candidates { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
+.candidate {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  background: var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.candidate-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; }
+.candidate-rows {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 14px;
+  align-items: center;
+}
+.candidate-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  min-width: 0;
+}
+.candidate-row .small { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.candidate-join { color: var(--text-faint); font-size: 18px; }
+.candidate .actions { margin: 0; }
+p.small { font-size: 12px; }
+@media (max-width: 720px) {
+  .candidate-rows { grid-template-columns: 1fr; }
+  .candidate-join { display: none; }
+}
