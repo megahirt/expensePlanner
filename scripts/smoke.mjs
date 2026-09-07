@@ -6,6 +6,7 @@
  * that the service worker registers without throwing.
  *
  * Usage: npm run build && node scripts/smoke.mjs
+ *        node scripts/smoke.mjs path/to/unzipped-release   (verify a release)
  */
 import { chromium } from 'playwright';
 import { fileURLToPath } from 'node:url';
@@ -15,7 +16,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const distPath = join(root, 'dist');
+// Defaults to the local build, but accepts a path so the packaged release zip
+// can be verified after unzipping — the artifact people actually install.
+const distPath = process.argv[2] ? resolve(process.argv[2]) : join(root, 'dist');
 
 if (!existsSync(join(distPath, 'manifest.json'))) {
   console.error('dist/manifest.json missing — run `npm run build` first.');
