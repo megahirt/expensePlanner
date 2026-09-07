@@ -12,7 +12,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { formatCents } from '@/lib/money';
 import { applyFilters, emptyFilters, sortTransactions, totals, type Filters, type Sort, type SortKey } from '@/lib/filter';
-import { effectiveCents, isNonSpend, type Transaction } from '@/types/models';
+import { effectiveCents, hasReturnActivity, isNonSpend, type Transaction } from '@/types/models';
 import { useStore } from '../store';
 import { FilterBar } from '../components/FilterBar';
 import { CategoryPicker } from '../components/CategoryPicker';
@@ -229,7 +229,10 @@ function Row({
   onOpen: () => void;
 }) {
   const cents = effectiveCents(t);
+  // Struck through only when the row is worth nothing; a partly-refunded order
+  // still counts and reads as a normal row carrying a refund badge.
   const muted = isNonSpend(t);
+  const flagged = hasReturnActivity(t);
 
   return (
     <div className={`trow ${selected ? 'selected' : ''} ${muted ? 'muted' : ''}`} style={{ height: ROW_HEIGHT }}>
@@ -246,7 +249,7 @@ function Row({
       <button className="cell merchant linky" onClick={onOpen} title={t.description}>
         {t.merchant}
         {t.items && t.items.length > 0 && <span className="pill">{t.items.length} items</span>}
-        {muted && <span className="pill warn">{t.supersededBy ? 'linked' : t.status}</span>}
+        {flagged && <span className="pill warn">{t.supersededBy ? 'linked' : t.status}</span>}
       </button>
       <div className="cell desc dim" title={t.description}>
         {t.description}

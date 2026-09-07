@@ -455,3 +455,18 @@ tr.muted td { opacity: 0.6; text-decoration: line-through; }
 .chip-count { color: var(--text-faint); font-size: 11px; font-variant-numeric: tabular-nums; }
 .chip.editing input { font: inherit; font-size: 13px; border: 0; background: none; color: var(--text); width: 120px; }
 table.preview tr.muted td { opacity: 0.5; text-decoration: none; }
+
+/* ---- amazon import ---- */
+.year-picker { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.year-picker .chip { cursor: pointer; }
+.year-picker .chip.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.year-picker .chip input { margin: 0; }
+.callout p { margin: 6px 0 0; }
+.callout code {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.card .stack { margin-top: 14px; }

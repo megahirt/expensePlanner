@@ -10,7 +10,7 @@
 import { chromium } from 'playwright';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { existsSync, mkdtempSync, readdirSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -174,6 +174,57 @@ try {
   await page.waitForSelector('.trow');
   const persisted = await page.locator('.trow .cat', { hasText: 'Kids & School' }).count();
   check('manual category persists across a reload', persisted === 1, `${persisted} found`);
+
+  // ---- Amazon: parse a saved orders page through the real UI ----
+  // The live scrape cannot be exercised here (it needs a signed-in Amazon
+  // account), but the paste path runs the identical parser and import pipeline,
+  // so the returns and cancellations handling is verified in a real browser.
+  await page.click('.nav button:has-text("Import")');
+  await page.waitForSelector('.year-picker');
+  await page.click('button:has-text("Paste a saved page instead")');
+
+  const amazonHtml = readFileSync(join(root, 'tests', 'fixtures', 'amazon', 'orders-mixed.html'), 'utf8');
+  await page.fill('.card textarea', amazonHtml);
+  await page.click('button:has-text("Read this page")');
+  await page.waitForSelector('.card .callout.ok', { timeout: 10_000 });
+  const amazonSummary = (await page.textContent('.card .callout.ok')) ?? '';
+  check('Amazon page imports its orders', /5 added/.test(amazonSummary), amazonSummary.trim());
+
+  // The five orders total $462.91 at face value. Cancelled, returned and
+  // partially-returned money must not be counted: only $180.92 was spent.
+  await page.click('.nav button:has-text("Transactions")');
+  await page.waitForSelector('.trow');
+  await page.selectOption('.filter-row select >> nth=0', { label: 'Amazon' });
+  await page.waitForFunction(
+    () => (document.querySelector('.page-head .subtitle')?.textContent ?? '').includes('out'),
+    null,
+    { timeout: 5_000 },
+  );
+  const amazonTotal = (await page.textContent('.page-head .subtitle')) ?? '';
+  check(
+    'returned and cancelled Amazon money is excluded from the total',
+    amazonTotal.includes('$180.92'),
+    amazonTotal.replace(/\s+/g, ' ').trim(),
+  );
+
+  await page.check('.checkbox:has-text("Show returned") input');
+  await page.waitForFunction(() => document.querySelectorAll('.trow').length === 5, null, { timeout: 5_000 });
+  check(
+    'cancelled and returned orders stay visible when asked for',
+    (await page.locator('.trow').count()) === 5,
+    `${await page.locator('.trow').count()} rows shown`,
+  );
+
+  // Only the cancelled order is worth nothing, so only it is struck through.
+  // The returned and partly-returned orders still carry real spend and stay
+  // legible, flagged with a status badge rather than crossed out.
+  const struck = await page.locator('.trow.muted').count();
+  check('only worthless rows are struck through', struck === 1, `${struck} struck through`);
+
+  const flagged = await page.locator('.trow .pill.warn').count();
+  check('return activity is badged', flagged >= 3, `${flagged} badged rows`);
+  await page.uncheck('.checkbox:has-text("Show returned") input');
+  await page.selectOption('.filter-row select >> nth=0', { label: 'All accounts' });
 
   // ---- Settings: rules and categories ----
   await page.click('.nav button:has-text("Settings")');

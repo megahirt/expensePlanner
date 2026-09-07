@@ -1,0 +1,103 @@
+<!doctype html>
+<html><body>
+<div id="ordersContainer">
+  <h1>Your Orders</h1>
+
+  <!-- 1. A normal delivered order with two items -->
+  <div class="order-card js-order-card">
+    <div class="order-header">
+      <div class="a-column"><span>Order placed</span><span>March 4, 2025</span></div>
+      <div class="a-column"><span>Total</span><span>$78.42</span></div>
+      <div class="a-column"><span>Order # 114-8765432-1234567</span></div>
+    </div>
+    <div class="shipment">
+      <div class="delivery-box__primary-text">Delivered March 6</div>
+      <div class="yohtmlc-item">
+        <a class="a-link-normal yohtmlc-product-title" href="/dp/B08N5WRWNW">Echo Dot (4th Gen)</a>
+        <span class="yohtmlc-item-price">$49.99</span>
+      </div>
+      <div class="yohtmlc-item">
+        <a class="a-link-normal yohtmlc-product-title" href="/dp/B07FZ8S74R">USB-C Cable 6ft</a>
+        <span class="yohtmlc-item-price">$14.22</span>
+        <span>Qty: 2</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. A cancelled order: never charged -->
+  <div class="order-card js-order-card">
+    <div class="order-header">
+      <div class="a-column"><span>Order placed</span><span>March 10, 2025</span></div>
+      <div class="a-column"><span>Total</span><span>$129.99</span></div>
+      <div class="a-column"><span>Order # 114-1111111-2222222</span></div>
+    </div>
+    <div class="shipment">
+      <div class="delivery-box__primary-text">Cancelled</div>
+      <div class="yohtmlc-item">
+        <a class="a-link-normal yohtmlc-product-title" href="/dp/B09B8V1LZ3">Standing Desk Lamp</a>
+        <span class="yohtmlc-item-price">$129.99</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. A fully returned order with an explicit refund amount -->
+  <div class="order-card js-order-card">
+    <div class="order-header">
+      <div class="a-column"><span>Order placed</span><span>February 12, 2025</span></div>
+      <div class="a-column"><span>Total</span><span>$89.00</span></div>
+      <div class="a-column"><span>Order # 114-3333333-4444444</span></div>
+    </div>
+    <div class="shipment">
+      <div class="delivery-box__primary-text">Return complete</div>
+      <div class="yohtmlc-item">
+        <a class="a-link-normal yohtmlc-product-title" href="/dp/B0C1234567">Wireless Keyboard</a>
+        <span class="yohtmlc-item-price">$89.00</span>
+        <span class="a-color-success">Refunded $82.00</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. A PARTIAL return: one item of three came back -->
+  <div class="order-card js-order-card">
+    <div class="order-header">
+      <div class="a-column"><span>Order placed</span><span>February 20, 2025</span></div>
+      <div class="a-column"><span>Total</span><span>$120.00</span></div>
+      <div class="a-column"><span>Order # 114-5555555-6666666</span></div>
+    </div>
+    <div class="shipment">
+      <div class="delivery-box__primary-text">Delivered February 22</div>
+      <div class="yohtmlc-item">
+        <a class="a-link-normal yohtmlc-product-title" href="/dp/B0AAAA1111">Running Shoes</a>
+        <span class="yohtmlc-item-price">$70.00</span>
+        <span class="a-color-success">Return complete. Refunded $70.00</span>
+      </div>
+      <div class="yohtmlc-item">
+        <a class="a-link-normal yohtmlc-product-title" href="/dp/B0BBBB2222">Wool Socks 3-pack</a>
+        <span class="yohtmlc-item-price">$30.00</span>
+      </div>
+      <div class="yohtmlc-item">
+        <a class="a-link-normal yohtmlc-product-title" href="/dp/B0CCCC3333">Shoe Insoles</a>
+        <span class="yohtmlc-item-price">$20.00</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. A return in progress with no refund amount yet -->
+  <div class="order-card js-order-card">
+    <div class="order-header">
+      <div class="a-column"><span>Order placed</span><span>March 1, 2025</span></div>
+      <div class="a-column"><span>Total</span><span>$45.50</span></div>
+      <div class="a-column"><span>Order # 114-7777777-8888888</span></div>
+    </div>
+    <div class="shipment">
+      <div class="delivery-box__primary-text">Return started</div>
+      <div class="yohtmlc-item">
+        <a class="a-link-normal yohtmlc-product-title" href="/dp/B0DDDD4444">Desk Organizer</a>
+        <span class="yohtmlc-item-price">$45.50</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="a-pagination"><li class="a-last"><a href="?startIndex=10">Next</a></li></div>
+</div>
+</body></html>

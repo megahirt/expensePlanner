@@ -15,6 +15,7 @@ import { runImport, summarizeImport } from '@/lib/import';
 import type { ColumnMapping, ImportStats, SourceRecord } from '@/types/models';
 import { useStore } from '../store';
 import { MappingWizard } from '../components/MappingWizard';
+import { AmazonImport } from '../components/AmazonImport';
 
 interface Pending {
   parsed: ParsedCsv;
@@ -168,6 +169,8 @@ export function ImportRoute() {
       </div>
 
       {error && <div className="callout danger">{error}</div>}
+
+      <AmazonImport />
 
       {result && (
         <div className="callout ok">
