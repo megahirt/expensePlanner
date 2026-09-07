@@ -1,0 +1,47 @@
+{
+  "name": "expenseplanner",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chrome extension that pulls expenses from multiple sources and browses them interactively. All data stays local.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "npm run build:app && npm run build:content",
+    "build:app": "vite build",
+    "build:content": "vite build --config vite.content.config.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts,.tsx",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "package": "node scripts/package.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "verify": "npm run typecheck && npm run lint && npm test && npm run build && npm run smoke"
+  },
+  "dependencies": {
+    "idb": "^8.0.0",
+    "papaparse": "^5.4.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.12.7"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "@types/papaparse": "^5.3.14",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^7.16.0",
+    "@typescript-eslint/parser": "^7.16.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "eslint": "^8.57.0",
+    "fake-indexeddb": "^6.0.0",
+    "jsdom": "^24.1.0",
+    "playwright": "^1.63.0",
+    "typescript": "^5.5.3",
+    "vite": "^5.3.3",
+    "vitest": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
