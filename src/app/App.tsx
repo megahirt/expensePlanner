@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { StoreProvider, useStore } from './store';
 import { ImportRoute } from './routes/Import';
 import { TransactionsRoute } from './routes/Transactions';
+import { SettingsRoute } from './routes/Settings';
 import { emptyFilters, type Filters } from '@/lib/filter';
 
 const ROUTES = ['Dashboard', 'Transactions', 'Import', 'Review', 'Settings'] as const;
@@ -68,6 +69,8 @@ function RouteView({
       return <TransactionsRoute filters={filters} onFiltersChange={setFilters} />;
     case 'Import':
       return <ImportRoute />;
+    case 'Settings':
+      return <SettingsRoute />;
     default:
       return (
         <div className="card empty">
