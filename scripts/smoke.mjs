@@ -12,7 +12,7 @@ import { chromium } from 'playwright';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -32,30 +32,62 @@ const check = (label, ok, detail = '') => {
 };
 
 /**
- * Find a Chromium that is actually on disk.
+ * Find a full Chromium build on disk.
  *
- * The preinstalled browser and the npm `playwright` package can disagree about
- * the expected revision, and extensions cannot be loaded into the headless
- * shell, so we locate a full `chrome` binary rather than trusting the default.
+ * This has to be a *full* Chromium: Playwright's default for a headless launch
+ * is the headless shell, which cannot load extensions at all — it starts fine
+ * and then never registers a service worker, which is exactly how this failed
+ * on CI while passing locally.
+ *
+ * Directories named `chromium_headless_shell-*` are therefore excluded (the
+ * `chromium-` prefix check does that, since they use an underscore).
+ *
+ * Two things vary by environment and both have to be handled, because getting
+ * either wrong silently yields no service worker rather than a clear error:
+ *
+ *   - Location. This sandbox preinstalls to /opt/pw-browsers; `npx playwright
+ *     install` on a CI runner writes to ~/.cache/ms-playwright.
+ *   - Layout. Older revisions unpack to `chrome-linux/chrome`; the Chrome for
+ *     Testing builds newer Playwright downloads use `chrome-linux64/chrome`.
  */
+const CHROME_SUBPATHS = [
+  ['chrome-linux64', 'chrome'],
+  ['chrome-linux', 'chrome'],
+];
+
 function findChromium() {
-  const base = process.env.PLAYWRIGHT_BROWSERS_PATH || '/opt/pw-browsers';
-  if (!existsSync(base)) return undefined;
-  const candidates = readdirSync(base)
-    .filter((d) => d.startsWith('chromium-'))
-    .map((d) => join(base, d, 'chrome-linux', 'chrome'))
-    .filter((p) => existsSync(p));
-  return candidates[0];
+  const roots = [
+    process.env.PLAYWRIGHT_BROWSERS_PATH,
+    '/opt/pw-browsers',
+    join(homedir(), '.cache', 'ms-playwright'),
+  ].filter((dir) => dir && existsSync(dir));
+
+  for (const base of roots) {
+    for (const dir of readdirSync(base).filter((d) => d.startsWith('chromium-'))) {
+      for (const parts of CHROME_SUBPATHS) {
+        const candidate = join(base, dir, ...parts);
+        if (existsSync(candidate)) return candidate;
+      }
+    }
+  }
+  return undefined;
 }
 
 const executablePath = findChromium();
-if (executablePath) console.log(`Using Chromium at ${executablePath}\n`);
+console.log(
+  executablePath
+    ? `Using Chromium at ${executablePath}\n`
+    : 'No full Chromium found on disk; falling back to the "chromium" channel.\n',
+);
 
 const userDataDir = mkdtempSync(join(tmpdir(), 'ep-smoke-'));
 const context = await chromium.launchPersistentContext(userDataDir, {
-  // Extensions require a headed context; the new headless mode supports them.
+  // Extensions do work headless, but only in Chrome's new headless mode, which
+  // means the full browser rather than the headless shell.
   headless: true,
-  ...(executablePath ? { executablePath } : {}),
+  // Exactly one of these: passing both is an error. The `chromium` channel is
+  // the fallback that still resolves to the full browser rather than the shell.
+  ...(executablePath ? { executablePath } : { channel: 'chromium' }),
   args: [
     `--disable-extensions-except=${distPath}`,
     `--load-extension=${distPath}`,
