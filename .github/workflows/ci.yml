@@ -1,8 +1,13 @@
 name: CI
 
+# Push is limited to main rather than every branch. With `branches: ['**']` a
+# branch that has a pull request open matches both triggers and runs the whole
+# suite twice for one commit — including two Chromium downloads and two browser
+# runs. Branches are still covered: the pull_request trigger tests them, against
+# the merge result rather than the branch tip.
 on:
   push:
-    branches: ['**']
+    branches: [main]
   pull_request:
 
 permissions:
