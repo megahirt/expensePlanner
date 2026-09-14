@@ -10,7 +10,7 @@ export default defineConfig({
   // regardless of how Chrome resolves the extension root.
   base: './',
   plugins: [react()],
-  resolve: { alias: { '@': resolve(__dirname, 'src') } },
+  resolve: { alias: { '@': resolve(import.meta.dirname, 'src') } },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
@@ -18,8 +18,8 @@ export default defineConfig({
     target: 'chrome110',
     rollupOptions: {
       input: {
-        app: resolve(__dirname, 'app.html'),
-        'service-worker': resolve(__dirname, 'src/background/service-worker.ts'),
+        app: resolve(import.meta.dirname, 'app.html'),
+        'service-worker': resolve(import.meta.dirname, 'src/background/service-worker.ts'),
       },
       output: {
         // Stable, predictable filenames: the manifest references these by path.
