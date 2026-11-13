@@ -3,3 +3,6 @@ dist/
 release/
 *.local
 .DS_Store
+
+# Dev browser profile used by `npm run chromium`
+.chromium-profile/

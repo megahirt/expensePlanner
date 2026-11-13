@@ -16,6 +16,7 @@
     "test:watch": "vitest",
     "package": "node scripts/package.mjs",
     "smoke": "node scripts/smoke.mjs",
+    "chromium": "node scripts/open-chromium.mjs",
     "verify": "npm run typecheck && npm run lint && npm test && npm run build && npm run smoke"
   },
   "dependencies": {
