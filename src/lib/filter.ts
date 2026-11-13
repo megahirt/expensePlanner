@@ -8,7 +8,7 @@
  * totals and what the table lists can never disagree.
  */
 
-import { effectiveCents, isNonSpend, type Transaction } from '@/types/models';
+import { countedCents, effectiveCents, isNonSpend, isTransfer, type Transaction } from '@/types/models';
 
 export interface Filters {
   /** Free text over merchant, description, notes and item names. */
@@ -138,6 +138,10 @@ export interface Totals {
   receivedCents: number;
   netCents: number;
   count: number;
+  /** Money moved between the household's own accounts: counted in neither
+   *  figure above, but reported so it is never silently missing. */
+  transferCents: number;
+  transferCount: number;
 }
 
 /**
@@ -147,12 +151,22 @@ export interface Totals {
  * non-canonical half of a linked pair contribute nothing. Every number the app
  * shows comes from here, which is why a returned Amazon order can never quietly
  * inflate a monthly total.
+ *
+ * Transfers between the household's own accounts are left out of both spending
+ * and income (see `countedCents`) and totalled separately.
  */
 export function totals(transactions: readonly Transaction[]): Totals {
   let spentCents = 0;
   let receivedCents = 0;
+  let transferCents = 0;
+  let transferCount = 0;
   for (const t of transactions) {
-    const cents = effectiveCents(t);
+    if (isTransfer(t)) {
+      transferCents += Math.abs(effectiveCents(t));
+      transferCount += 1;
+      continue;
+    }
+    const cents = countedCents(t);
     if (cents < 0) spentCents += -cents;
     else receivedCents += cents;
   }
@@ -161,6 +175,8 @@ export function totals(transactions: readonly Transaction[]): Totals {
     receivedCents,
     netCents: receivedCents - spentCents,
     count: transactions.length,
+    transferCents,
+    transferCount,
   };
 }
 
@@ -171,14 +187,14 @@ export interface Bucket {
   count: number;
 }
 
-/** Group spending by category id. Income and zero-effect rows are excluded. */
+/** Group spending by category id. Income, transfers and zero-effect rows are excluded. */
 export function spendByCategory(
   transactions: readonly Transaction[],
   categoryNames: ReadonlyMap<string, string>,
 ): Bucket[] {
   const buckets = new Map<string, Bucket>();
   for (const t of transactions) {
-    const cents = effectiveCents(t);
+    const cents = countedCents(t);
     if (cents >= 0) continue;
     const key = t.categoryId ?? '';
     const label = categoryNames.get(key) ?? 'Uncategorized';
@@ -194,7 +210,7 @@ export function spendByCategory(
 export function spendByMonth(transactions: readonly Transaction[]): Bucket[] {
   const buckets = new Map<string, Bucket>();
   for (const t of transactions) {
-    const cents = effectiveCents(t);
+    const cents = countedCents(t);
     if (cents >= 0) continue;
     const key = t.date.slice(0, 7);
     const bucket = buckets.get(key) ?? { key, label: key, spentCents: 0, count: 0 };
@@ -209,7 +225,7 @@ export function spendByMonth(transactions: readonly Transaction[]): Bucket[] {
 export function spendByMerchant(transactions: readonly Transaction[], limit = 10): Bucket[] {
   const buckets = new Map<string, Bucket>();
   for (const t of transactions) {
-    const cents = effectiveCents(t);
+    const cents = countedCents(t);
     if (cents >= 0) continue;
     const bucket = buckets.get(t.merchant) ?? {
       key: t.merchant,

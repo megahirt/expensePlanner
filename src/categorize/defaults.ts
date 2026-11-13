@@ -23,7 +23,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
   { id: 'cat-gifts', name: 'Gifts & Donations', color: '#c45b5b', builtin: true },
   { id: 'cat-home', name: 'Home & Rent', color: '#6bc4a8', builtin: true },
   { id: 'cat-income', name: 'Income', color: '#2f6f4f', builtin: true },
-  { id: 'cat-transfer', name: 'Transfers & Payments', color: '#8c8c86', builtin: true },
+  { id: 'cat-transfer', name: 'Transfers & Card Payments', color: '#8c8c86', builtin: true },
   { id: 'cat-fees', name: 'Fees & Interest', color: '#a33a2c', builtin: true },
   { id: 'cat-uncategorized', name: 'Uncategorized', color: '#93938d', builtin: true },
 ];
@@ -90,9 +90,12 @@ const SEEDS: Seed[] = [
       'foreign transaction'],
   },
   {
+    // Money moving between the household's own accounts, which is left out of
+    // spending totals. Deliberately NOT here: Venmo, Zelle, PayPal and Cash App.
+    // Those usually pay another person, which is real spending, and a rule that
+    // quietly removed it from the totals would be worse than no rule.
     category: 'cat-transfer',
-    merchants: ['venmo', 'zelle', 'paypal', 'cash app', 'transfer', 'payment thank you',
-      'online payment', 'autopay'],
+    merchants: ['transfer', 'payment thank you', 'online payment', 'autopay', 'epayment'],
   },
 ];
 

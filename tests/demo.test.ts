@@ -183,8 +183,37 @@ describe('demo household, imported together', () => {
 
   it('categorizes most rows with the starter rules, and leaves real work to do', () => {
     const categorized = all.filter((t) => t.categoryId).length / all.length;
-    expect(categorized).toBeGreaterThan(0.7);
+    // About two thirds: payments to people (Venmo, Zelle) are deliberately left
+    // for the user to categorize rather than being filed as transfers.
+    expect(categorized).toBeGreaterThan(0.6);
     expect(categorized).toBeLessThan(0.97);
+  });
+
+  it('does not count paying off a card, or moving savings, as spending', () => {
+    const isOwnMoney = (t: Transaction) =>
+      /AUTOPAY|EPAYMENT|Payment Thank You|TRANSFER (TO|FROM)/i.test(t.description);
+    const moved = all.filter(isOwnMoney);
+
+    // Twelve payments on each card seen from both sides, plus fifteen savings
+    // transfers seen from both sides.
+    expect(moved).toHaveLength(12 * 4 + 15 * 2);
+    expect(moved.every((t) => t.categoryId === 'cat-transfer')).toBe(true);
+
+    const t = totals(all);
+    expect(t.transferCents).toBe(moved.reduce((sum, m) => sum + Math.abs(m.amountCents), 0));
+
+    // Checking pays the cards, so its own spending is everything it sent out
+    // that was not a transfer. Before this was handled, the card payments made
+    // the household look like it spent tens of thousands more than it did.
+    const checkingOut = manifest.accounts['schwab-checking.csv']!.outCents;
+    const checking = totals(all.filter((r) => r.accountLabel.startsWith('Schwab')));
+    expect(checking.spentCents).toBeLessThan(checkingOut * 0.6);
+  });
+
+  it('counts paying a person as spending, because that money really left', () => {
+    const paid = all.filter((t) => /^(ZELLE PAYMENT TO|VENMO PAYMENT)/.test(t.description));
+    expect(paid.length).toBeGreaterThan(20);
+    expect(paid.every((t) => t.categoryId !== 'cat-transfer')).toBe(true);
   });
 
   it('proposes the card charge for every Amazon order that was charged', () => {

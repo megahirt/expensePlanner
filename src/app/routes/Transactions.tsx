@@ -88,6 +88,9 @@ export function TransactionsRoute({ filters, onFiltersChange }: Props) {
             {formatCents(summary.spentCents)} out
             {summary.receivedCents > 0 && <> · {formatCents(summary.receivedCents)} in</>} across{' '}
             {summary.count.toLocaleString()} matching {summary.count === 1 ? 'row' : 'rows'}
+            {summary.transferCents > 0 && (
+              <> · {formatCents(summary.transferCents)} moved between your accounts, not counted</>
+            )}
           </p>
         </div>
       </div>

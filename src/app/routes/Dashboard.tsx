@@ -129,7 +129,8 @@ export function DashboardRoute({ onDrillDown }: Props) {
         <h1>Dashboard</h1>
         <p className="subtitle">
           Everything below counts only money actually spent — cancelled orders and refunds are
-          already taken out.
+          already taken out, and so is money moved between your own accounts, such as paying off a
+          card.
         </p>
       </div>
 

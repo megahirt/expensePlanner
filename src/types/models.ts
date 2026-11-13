@@ -237,6 +237,34 @@ export function effectiveCents(t: Transaction): number {
 }
 
 /**
+ * The category for money moving between the household's own accounts: paying a
+ * credit card from checking, or shifting money into savings.
+ */
+export const TRANSFER_CATEGORY_ID = 'cat-transfer';
+
+/** True when a row is money moving between the household's own accounts. */
+export function isTransfer(t: Transaction): boolean {
+  return t.categoryId === TRANSFER_CATEGORY_ID;
+}
+
+/**
+ * What a transaction contributes to spending and income totals, in cents.
+ *
+ * `effectiveCents` answers "how much money did this row really move"; this
+ * answers "how much of that was spent or earned". They differ for transfers. A
+ * card payment is the same money as the purchases already listed on the card,
+ * so once two accounts are imported, counting it would count every card
+ * purchase twice: once when it was bought and again when the bill was paid.
+ *
+ * Transfers are identified by category rather than guessed from descriptions,
+ * so the rule is visible and correctable like any other categorization: move a
+ * row out of the category and it counts again.
+ */
+export function countedCents(t: Transaction): number {
+  return isTransfer(t) ? 0 : effectiveCents(t);
+}
+
+/**
  * True when a row contributes nothing at all, and so is hidden unless "show
  * returned and cancelled" is on.
  *

@@ -4,6 +4,7 @@ import {
   emptyFilters,
   sortTransactions,
   spendByCategory,
+  spendByMerchant,
   spendByMonth,
   totals,
 } from '@/lib/filter';
@@ -69,6 +70,42 @@ describe('totals', () => {
     const t = totals([txn({ amountCents: -1000, refundedCents: 5000 })]);
     expect(t.spentCents).toBe(0);
     expect(t.receivedCents).toBe(0);
+  });
+});
+
+describe('transfers between your own accounts', () => {
+  // Paying a card from checking is one expense seen three times: the purchases
+  // on the card, the payment leaving checking, and the payment arriving on the
+  // card. Only the purchases are spending.
+  const purchase = txn({ amountCents: -12000, accountLabel: 'Card' });
+  const paymentOut = txn({ amountCents: -12000, categoryId: 'cat-transfer', merchant: 'Chase Autopay' });
+  const paymentIn = txn({ amountCents: 12000, categoryId: 'cat-transfer', accountLabel: 'Card' });
+
+  it('counts a card payment as neither spending nor income', () => {
+    const t = totals([purchase, paymentOut, paymentIn]);
+    expect(t.spentCents).toBe(12000);
+    expect(t.receivedCents).toBe(0);
+    expect(t.netCents).toBe(-12000);
+  });
+
+  it('still reports how much moved, so nothing vanishes without a trace', () => {
+    const t = totals([purchase, paymentOut, paymentIn]);
+    expect(t.transferCents).toBe(24000);
+    expect(t.transferCount).toBe(2);
+    expect(t.count).toBe(3);
+  });
+
+  it('keeps transfers out of every breakdown', () => {
+    const rows = [purchase, paymentOut, paymentIn];
+    const names = new Map([['cat-groceries', 'Groceries'], ['cat-transfer', 'Transfers & Payments']]);
+
+    expect(spendByCategory(rows, names).map((b) => b.key)).toEqual(['cat-groceries']);
+    expect(spendByMonth(rows)[0]?.spentCents).toBe(12000);
+    expect(spendByMerchant(rows).map((b) => b.label)).toEqual(['Trader Joes']);
+  });
+
+  it('keeps transfers visible in the list, unlike cancelled or returned rows', () => {
+    expect(applyFilters([purchase, paymentOut, paymentIn], emptyFilters())).toHaveLength(3);
   });
 });
 
