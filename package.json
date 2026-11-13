@@ -17,6 +17,8 @@
     "package": "node scripts/package.mjs",
     "smoke": "node scripts/smoke.mjs",
     "chromium": "node scripts/open-chromium.mjs",
+    "chromium:demo": "node scripts/open-chromium.mjs --demo",
+    "demo:data": "node scripts/generate-demo-data.mjs",
     "verify": "npm run typecheck && npm run lint && npm test && npm run build && npm run smoke"
   },
   "dependencies": {

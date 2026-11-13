@@ -4,5 +4,5 @@ release/
 *.local
 .DS_Store
 
-# Dev browser profile used by `npm run chromium`
-.chromium-profile/
+# Dev browser profiles used by `npm run chromium` and `npm run chromium:demo`
+.chromium-profile*/
