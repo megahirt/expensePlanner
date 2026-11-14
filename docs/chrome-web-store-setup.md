@@ -15,7 +15,7 @@ release is one tag.
 | Release workflow (`.github/workflows/release.yml`) | Ready. Builds, tests, zips, makes the GitHub Release. |
 | Store upload (`scripts/publish-chrome.mjs`) | Ready. Skips until the three settings in step 4 exist. |
 | Listing text and images (`store/chrome/`) | Ready to paste and upload. |
-| Privacy policy text (`store/privacy-policy.md`) | Written. **Needs a public address** (see step 2). |
+| Website and privacy policy (`site/`, `.github/workflows/pages.yml`) | Live (step 2). |
 | Developer account, store item, service account | Not done. Steps 1, 3 and 4. |
 
 ## 1. Developer registration — $5 one-time
@@ -29,18 +29,19 @@ release is one tag.
 3. Turn on **2-step verification** for that Google account. The store requires
    it to publish.
 
-## 2. Give the privacy policy a public address
+## 2. The website (privacy policy address)
 
-The store needs a link to a privacy policy that anyone can open. This
-repository is **private**, so a link to `store/privacy-policy.md` on GitHub
-will not work for a reviewer. Pick one:
+The store needs a link to a privacy policy that anyone can open. The policy is
+a page of the project's website, in `site/`, published by GitHub Pages:
 
-- **Make the repository public.** Then the policy is
-  `https://github.com/megahirt/expensePlanner/blob/main/store/privacy-policy.md`,
-  and the listing can also link to the code and to Issues for support.
-- **Keep it private** and publish the policy text somewhere public, such as a
-  public gist or a page on a site you own. Use that address in the listing, and
-  give a support email instead of the Issues link.
+- Site: <https://megahirt.github.io/expensePlanner/>
+- Privacy policy: <https://megahirt.github.io/expensePlanner/privacy.html>
+
+GitHub Pages is turned on for this repository (source: GitHub Actions), and
+`.github/workflows/pages.yml` republishes the site whenever `site/` changes on
+`main`. The repository is public, which the free GitHub plan requires for
+Pages, and which lets visitors open the Issues page that the policy's contact
+line points at.
 
 ## 3. Create the store item (first upload is by hand)
 

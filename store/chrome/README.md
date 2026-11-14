@@ -59,7 +59,7 @@ expensePlanner is an independent project. It is not made, endorsed or supported 
 | Screenshots | `screenshot-1.png` … `screenshot-5.png` (1280×800, in this order) |
 | Small promo tile | `promo-small-440x280.png` |
 | Marquee promo tile | none (optional) |
-| Homepage URL | the repository, if it is public; otherwise leave empty |
+| Homepage URL | https://megahirt.github.io/expensePlanner/ |
 | Support URL | the repository's Issues page if public; otherwise a support email in the Account tab |
 | Mature content | No |
 
@@ -120,9 +120,8 @@ Reads the user's own Amazon order history, which Amazon offers no export for. It
   - I do not use or transfer user data for purposes that are unrelated to my item's single purpose.
   - I do not use or transfer user data to determine creditworthiness or for lending purposes.
 
-**Privacy policy URL:** the public address chosen in
-`docs/chrome-web-store-setup.md`, step 2. The text is
-[`store/privacy-policy.md`](../privacy-policy.md).
+**Privacy policy URL:** https://megahirt.github.io/expensePlanner/privacy.html
+(the page is `site/privacy.html`)
 
 ## Distribution tab
 

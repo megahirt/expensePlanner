@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>expensePlanner · See where the money went</title>
+<meta name="description" content="A Chrome extension that brings your bank, card and Amazon spending into one categorized view. Everything stays on your computer.">
+<meta property="og:title" content="expensePlanner · See where the money went">
+<meta property="og:description" content="A Chrome extension that brings your bank, card and Amazon spending into one categorized view. Everything stays on your computer.">
+<meta property="og:image" content="img/screenshot-1.png">
+<link rel="icon" href="img/icon.png" type="image/png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site-head"><div class="wrap">
+<a class="logo" href="index.html"><img src="img/icon.png" alt="" width="34" height="34"><span class="name">expense<b>Planner</b></span></a>
+<nav class="nav" aria-label="Site"><a href="index.html" aria-current="page">Home</a><a href="privacy.html">Privacy</a></nav>
+</div></header>
+<main>
+
+<section class="hero"><div class="wrap">
+<h1>See where the money went, in one place</h1>
+<p class="lead">expensePlanner brings your bank, credit card and Amazon spending into one categorized view. It runs in Chrome, and everything stays on your computer.</p>
+<div class="cta">
+<!-- When the store listing is live, replace this span with:
+     <a class="button" href="https://chromewebstore.google.com/detail/<item-id>">Add to Chrome</a> -->
+<span class="soon">Coming soon to the Chrome Web Store</span>
+<a class="button quiet" href="privacy.html">Read the privacy policy</a>
+</div>
+<div class="shot"><img src="img/screenshot-1.png" alt="The dashboard: spending this month, last month and for the year, with a chart by month" width="1280" height="800"></div>
+</div></section>
+
+<section class="block private"><div class="wrap narrow">
+<div class="eyebrow">Private by design</div>
+<h2>Your finances never leave your computer</h2>
+<ul>
+<li>No account to create, no server, no analytics, no ads.</li>
+<li>Bank and card data only enters through files you download and choose to open. Your bank password is never asked for.</li>
+<li>Access to amazon.com is asked for only when you press Import, and you can take it back at any time.</li>
+<li>One button in Settings deletes everything.</li>
+</ul>
+</div></section>
+
+<section class="block"><div class="wrap">
+<div class="eyebrow">What it does</div>
+<h2>From a pile of statements to a clear picture</h2>
+
+<div class="feature">
+<div class="words"><h3>Sorts spending into categories on its own</h3>
+<p>It uses your own rules, what an Amazon order contained, a built-in list of well-known merchants and your bank's own category. Whatever it cannot place is grouped by merchant, biggest first, so one choice files every matching row.</p></div>
+<div class="shot"><img src="img/screenshot-2.png" alt="The Categorize screen, listing merchants with no category" width="1280" height="800" loading="lazy"></div>
+</div>
+
+<div class="feature">
+<div class="words"><h3>Counts each purchase once</h3>
+<p>An Amazon order and the card charge that paid for it are one expense. They are matched side by side for you to confirm. Cancelled orders, returns and card payments are left out of your spending.</p></div>
+<div class="shot"><img src="img/screenshot-3.png" alt="The Review screen, showing an Amazon order next to its card charge" width="1280" height="800" loading="lazy"></div>
+</div>
+
+<div class="feature">
+<div class="words"><h3>Tells you why</h3>
+<p>Every automatic category says how it was chosen. A category you set by hand is never overwritten, and every import can be undone.</p></div>
+<div class="shot"><img src="img/screenshot-4.png" alt="One transaction, with the reason for its category" width="1280" height="800" loading="lazy"></div>
+</div>
+
+<div class="feature">
+<div class="words"><h3>Finds subscriptions and regular bills</h3>
+<p>Charges that come at a steady rhythm are listed with what they cost per year, next to spending by category and by merchant.</p></div>
+<div class="shot"><img src="img/screenshot-5.png" alt="Spending by category and merchant, and a list of recurring charges" width="1280" height="800" loading="lazy"></div>
+</div>
+</div></section>
+
+<section class="block"><div class="wrap">
+<div class="eyebrow">How it works</div>
+<h2>Three steps, no sign-up</h2>
+<div class="cards">
+<div class="card"><h3>1. Download your statements</h3><p>Export a CSV from each bank and card, as you would for a spreadsheet.</p></div>
+<div class="card"><h3>2. Drop them in</h3><p>The columns are worked out for you. Importing the same dates twice is safe: rows you already have are skipped.</p></div>
+<div class="card"><h3>3. Add Amazon, if you like</h3><p>Amazon has no export, so the extension reads your order history page for you, with each item.</p></div>
+</div>
+<p class="sub" style="margin-top:26px">Not ready to use your own data? A made-up household's year of spending is built in. Switch to it in Settings to look around first. It is kept completely apart from your data.</p>
+</div></section>
+
+</main>
+<footer class="site-foot"><div class="wrap">
+<div><strong>expensePlanner</strong><br>A free Chrome extension. Everything stays on your computer.</div>
+<div><a href="index.html">Home</a> · <a href="privacy.html">Privacy policy</a> · <a href="https://github.com/megahirt/expensePlanner/issues">Questions and feedback</a></div>
+</div>
+<div class="wrap"><p class="disclaim">expensePlanner is an independent project. It is not made, endorsed or supported by Amazon or any bank. Every screenshot shows a made-up household.</p></div>
+</footer>
+</body>
+</html>

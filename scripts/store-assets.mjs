@@ -8,6 +8,8 @@
  *                            transparent padding (Chrome's icon guidelines)
  *   promo-small-440x280.png  small promo tile
  *
+ * The screenshots are also copied to site/img/ for the website.
+ *
  * Every screenshot shows the made-up demo household that ships with the
  * extension. Never use real financial data: these images are committed and
  * published.
@@ -15,7 +17,7 @@
  * Run `npm run build` first.
  */
 import { chromium } from 'playwright';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,11 +25,14 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist');
 const OUT = join(ROOT, 'store', 'chrome');
+// The site (site/, published by pages.yml) shows the same screenshots.
+const SITE_IMG = join(ROOT, 'site', 'img');
 if (!existsSync(join(DIST, 'manifest.json'))) {
   console.error('No dist/ build found — run `npm run build` first.');
   process.exit(1);
 }
 mkdirSync(OUT, { recursive: true });
+mkdirSync(SITE_IMG, { recursive: true });
 
 const context = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), 'ep-store-')), {
   channel: 'chromium',
@@ -48,6 +53,7 @@ try {
   const shot = async (n, what) => {
     await page.waitForTimeout(400);
     await page.screenshot({ path: join(OUT, `screenshot-${n}.png`) });
+    copyFileSync(join(OUT, `screenshot-${n}.png`), join(SITE_IMG, `screenshot-${n}.png`));
     console.log(`store/chrome/screenshot-${n}.png  ${what}`);
   };
   const go = (name) => page.click(`.nav button:has-text("${name}")`);

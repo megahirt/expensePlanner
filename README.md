@@ -171,7 +171,7 @@ Then load `dist/` via `chrome://extensions` → Developer mode → Load unpacked
 | `npm run smoke` | Loads the built extension in real Chromium and drives the UI |
 | `npm run verify` | Typecheck, lint, tests, build and smoke test |
 | `npm run package` | Zips the build into `release/`, with a checksum |
-| `npm run store:assets` | Remakes the Chrome Web Store screenshots in `store/chrome/` |
+| `npm run store:assets` | Remakes the screenshots for the store (`store/chrome/`) and the website (`site/img/`) |
 | `npm run chromium` | Builds, then opens a Chromium window with the extension loaded |
 | `npm run chromium:demo` | The same, opened straight into the demo household |
 | `npm run demo:data` | Regenerates the demo files in `public/demo/` |
