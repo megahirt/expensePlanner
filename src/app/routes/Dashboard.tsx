@@ -30,7 +30,7 @@ interface Props {
 }
 
 export function DashboardRoute({ onDrillDown, onCategorize }: Props) {
-  const { transactions, categories, settings } = useStore();
+  const { transactions, categories, settings, workspace, switchWorkspace } = useStore();
   const currency = settings.currency;
 
   const categoryNames = useMemo(
@@ -97,6 +97,17 @@ export function DashboardRoute({ onDrillDown, onCategorize }: Props) {
       <div className="card empty">
         <h2>No data yet</h2>
         <p className="dim">Import a bank CSV or your Amazon orders and this fills in.</p>
+        {workspace === 'real' && (
+          <>
+            <p className="dim">
+              Or look around first with a made-up household's year of spending. It is kept apart from
+              your own data.
+            </p>
+            <button className="primary" onClick={() => void switchWorkspace('demo')}>
+              Try the demo household
+            </button>
+          </>
+        )}
       </div>
     );
   }

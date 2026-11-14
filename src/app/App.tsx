@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StoreProvider, useStore } from './store';
 import { ImportRoute } from './routes/Import';
 import { TransactionsRoute } from './routes/Transactions';
@@ -25,7 +25,11 @@ function Shell() {
   // dashboard can navigate to Transactions with the filter already applied,
   // and the two views can never disagree about what is being shown.
   const [filters, setFilters] = useState<Filters>(emptyFilters());
-  const { ready, transactions } = useStore();
+  const { ready, transactions, workspace, workspaceError, notice, switchWorkspace } = useStore();
+  const demo = workspace === 'demo';
+
+  // A filter built against one set of data means nothing in the other.
+  useEffect(() => setFilters(emptyFilters()), [workspace]);
 
   return (
     <div className="app">
@@ -45,12 +49,25 @@ function Shell() {
           <span>All data stays on this computer</span>
         </div>
       </header>
+      {demo && (
+        <div className="demo-banner" role="status">
+          <span>
+            <strong>Demo household</strong> — made-up data. Your own data is untouched, and nothing
+            you do here changes it.
+          </span>
+          <button onClick={() => void switchWorkspace('real')}>Switch to your data</button>
+        </div>
+      )}
       <main className="main">
+        {workspaceError && (
+          <div className="callout danger">The demo household could not be loaded: {workspaceError}</div>
+        )}
+        {ready && notice && <div className="callout ok notice">{notice}</div>}
         {ready ? (
           <RouteView route={route} filters={filters} setFilters={setFilters} onNavigate={setRoute} />
         ) : (
           <div className="card empty">
-            <p className="dim">Opening your data\u2026</p>
+            <p className="dim">{demo ? 'Loading the demo household…' : 'Opening your data…'}</p>
           </div>
         )}
       </main>

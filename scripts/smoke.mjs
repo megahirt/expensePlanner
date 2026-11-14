@@ -438,6 +438,73 @@ try {
     mergeMsg.trim(),
   );
 
+  // ---- Demo household: a second database, switched to from Settings ----
+  const heldNow = async () =>
+    Number(((await page.textContent('.topbar-right')) ?? '').match(/([\d,]+) transactions/)?.[1]?.replace(/,/g, '') ?? '-1');
+  const mine = await heldNow();
+
+  check('no demo banner while showing your own data', (await page.locator('.demo-banner').count()) === 0);
+  await page.click('.workspace-choice label:has-text("Demo household")');
+  await page.waitForSelector('.demo-banner', { timeout: 10_000 });
+  await page.waitForFunction(
+    () => /[\d,]+ transactions/.test(document.querySelector('.topbar-right')?.textContent ?? ''),
+    null,
+    { timeout: 60_000 },
+  );
+  const demoIndex = JSON.parse(readFileSync(join(distPath, 'demo', 'index.json'), 'utf8'));
+  check('demo files ship inside the extension', demoIndex.accounts.length === 4);
+  const demoHeld = await heldNow();
+  check('switching to the demo loads the made-up household', demoHeld > 1000 && demoHeld !== mine, `${demoHeld} transactions`);
+  check('a banner says this is demo data', /Demo household/.test((await page.textContent('.demo-banner')) ?? ''));
+
+  await page.click('.nav button:has-text("Import")');
+  check(
+    'Import warns that files would go into the demo',
+    await page.isVisible('.callout.warn:has-text("demo household")'),
+  );
+
+  // The choice survives closing and reopening the app.
+  await page.reload({ waitUntil: 'load' });
+  await page.waitForSelector('.demo-banner', { timeout: 10_000 });
+  await page.waitForFunction(
+    () => /[\d,]+ transactions/.test(document.querySelector('.topbar-right')?.textContent ?? ''),
+    null,
+    { timeout: 60_000 },
+  );
+  check('reopening stays in the demo without loading it twice', (await heldNow()) === demoHeld, `${await heldNow()}`);
+
+  await page.click('.demo-banner button');
+  await page.waitForSelector('.demo-banner', { state: 'detached', timeout: 10_000 });
+  await page.waitForFunction(
+    () => /[\d,]+ transactions/.test(document.querySelector('.topbar-right')?.textContent ?? ''),
+    null,
+    { timeout: 30_000 },
+  );
+  check('switching back shows your own data exactly as it was', (await heldNow()) === mine, `${await heldNow()} of ${mine}`);
+
+  // ---- Delete all data: empties your side only ----
+  await page.click('.nav button:has-text("Settings")');
+  page.once('dialog', (dialog) => void dialog.dismiss());
+  await page.click('button.danger:has-text("Delete all my data")');
+  check('cancelling the confirmation deletes nothing', (await heldNow()) === mine, `${await heldNow()}`);
+
+  page.once('dialog', (dialog) => void dialog.accept());
+  await page.click('button.danger:has-text("Delete all my data")');
+  await page.waitForSelector('.callout.notice:has-text("deleted")', { timeout: 10_000 });
+  check('Delete all my data empties your data', (await heldNow()) === 0, `${await heldNow()} left`);
+  check('starter categories come back after deleting', (await page.locator('.chips .chip').count()) > 5);
+
+  await page.click('.workspace-choice label:has-text("Demo household")');
+  await page.waitForSelector('.demo-banner', { timeout: 10_000 });
+  await page.waitForFunction(
+    () => /[\d,]+ transactions/.test(document.querySelector('.topbar-right')?.textContent ?? ''),
+    null,
+    { timeout: 60_000 },
+  );
+  check('the demo household is untouched by it', (await heldNow()) === demoHeld, `${await heldNow()} of ${demoHeld}`);
+  check('the demo offers no way to delete your data', (await page.locator('button.danger').count()) === 0);
+  check('no page errors after switching', pageErrors.length === 0, pageErrors.join(' | '));
+
   // IndexedDB must be usable from the extension origin — everything depends on it.
   const idbOk = await page.evaluate(async () => {
     return await new Promise((res) => {

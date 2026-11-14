@@ -8,12 +8,21 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { parseCsvText, rowsToTransactions } from '@/adapters/csv';
 import { detectMapping } from '@/adapters/csv/detect';
 import { parseOrdersPage } from '@/adapters/amazon/parse';
 import { runImport } from '@/lib/import';
-import { clearAllData, countTransactions, getAllTransactions } from '@/lib/db';
+import {
+  clearAllData,
+  countTransactions,
+  getAllTransactions,
+  getSources,
+  putCategories,
+  putRules,
+  setActiveWorkspace,
+} from '@/lib/db';
+import { loadDemoData, type DemoIndex } from '@/lib/demo';
 import { headerHash } from '@/lib/ids';
 import { applyFilters, emptyFilters, totals } from '@/lib/filter';
 import { detectRecurring } from '@/lib/recurring';
@@ -24,6 +33,7 @@ import {
   DEMO_ACCOUNTS,
   DEMO_AMAZON_FILE,
   DEMO_DIR,
+  DEMO_INDEX_FILE,
   DEMO_YEAR,
   generateDemoData,
 } from '../scripts/generate-demo-data.mjs';
@@ -332,5 +342,51 @@ describe('demo household, imported together', () => {
     expect(new Set(inherited.map((t) => t.categoryId)).size).toBeGreaterThanOrEqual(4);
     expect(after).toBeLessThan(before);
     expect(before - after).toBeGreaterThan(manifest.amazon.faceValueCents * 0.8);
+  });
+});
+
+describe('demo household, loaded by the app into its own database', () => {
+  // The real database still holds the rows the previous block imported, which
+  // is what makes "untouched" below a real claim.
+  beforeAll(async () => {
+    await setActiveWorkspace('demo');
+    await clearAllData();
+    await putCategories(DEFAULT_CATEGORIES);
+    await putRules(defaultRules());
+  });
+
+  afterAll(async () => {
+    await setActiveWorkspace('real');
+  });
+
+  it('ships an index naming every file the loader needs', () => {
+    const index = JSON.parse(onDisk(DEMO_INDEX_FILE)) as DemoIndex;
+    expect(index.accounts).toEqual(DEMO_ACCOUNTS);
+    expect(index.amazon).toBe(DEMO_AMAZON_FILE);
+    expect(index.year).toBe(DEMO_YEAR);
+  });
+
+  it('loads every row, with each account named', async () => {
+    const result = await loadDemoData(async (name) => onDisk(name));
+    expect(result.added).toBe(manifest.totalRows);
+    expect(await countTransactions()).toBe(manifest.totalRows);
+
+    const labels = (await getSources()).map((s) => s.label).sort();
+    expect(labels).toEqual(['Amazon', ...DEMO_ACCOUNTS.map((a) => a.label)].sort());
+  });
+
+  it('adds nothing when loaded a second time', async () => {
+    const result = await loadDemoData(async (name) => onDisk(name));
+    expect(result.added).toBe(0);
+    expect(await countTransactions()).toBe(manifest.totalRows);
+  });
+
+  it('can be wiped without touching the real data', async () => {
+    await clearAllData();
+    expect(await countTransactions()).toBe(0);
+
+    await setActiveWorkspace('real');
+    expect(await countTransactions()).toBe(manifest.totalRows);
+    expect(await getSources()).toEqual([]);
   });
 });

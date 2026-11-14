@@ -1,13 +1,16 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   clearAllData,
   countTransactions,
+  getActiveWorkspace,
   getTransaction,
   putImportBatch,
+  setActiveWorkspace,
   setCategoryForMany,
   undoImportBatch,
   updateUserFields,
   upsertTransactions,
+  WORKSPACE_KEY,
 } from '@/lib/db';
 import type { ImportBatch, Transaction } from '@/types/models';
 import { emptyStats } from '@/types/models';
@@ -148,5 +151,69 @@ describe('setCategoryForMany', () => {
     expect(changed).toBe(2);
     expect((await getTransaction('a'))?.categorySource).toBe('manual');
     expect((await getTransaction('c'))?.categoryId).toBeNull();
+  });
+});
+
+describe('workspaces', () => {
+  beforeEach(async () => {
+    await setActiveWorkspace('demo');
+    await clearAllData();
+    await setActiveWorkspace('real');
+    await clearAllData();
+  });
+
+  afterAll(async () => {
+    await setActiveWorkspace('real');
+  });
+
+  it('starts on the real data', () => {
+    expect(getActiveWorkspace()).toBe('real');
+  });
+
+  it('keeps real and demo rows in separate databases', async () => {
+    await upsertTransactions([txn({ id: 'mine' })]);
+
+    await setActiveWorkspace('demo');
+    expect(await countTransactions()).toBe(0);
+    expect(await getTransaction('mine')).toBeUndefined();
+    await upsertTransactions([txn({ id: 'demo-1' }), txn({ id: 'demo-2' })]);
+    expect(await countTransactions()).toBe(2);
+
+    await setActiveWorkspace('real');
+    expect(await countTransactions()).toBe(1);
+    expect(await getTransaction('demo-1')).toBeUndefined();
+    expect((await getTransaction('mine'))?.id).toBe('mine');
+  });
+
+  it('keeps a decision made in the demo out of the real data', async () => {
+    await upsertTransactions([txn({ id: 'same-id' })]);
+
+    await setActiveWorkspace('demo');
+    await upsertTransactions([txn({ id: 'same-id' })]);
+    await updateUserFields('same-id', { categoryId: 'cat-groceries', notes: 'demo note' });
+
+    await setActiveWorkspace('real');
+    const mine = await getTransaction('same-id');
+    expect(mine?.categoryId).toBeNull();
+    expect(mine?.notes).toBeUndefined();
+  });
+
+  it('wiping the demo leaves real data alone', async () => {
+    await upsertTransactions([txn({ id: 'mine' })]);
+    await setActiveWorkspace('demo');
+    await upsertTransactions([txn({ id: 'demo-1' })]);
+
+    await clearAllData();
+    expect(await countTransactions()).toBe(0);
+
+    await setActiveWorkspace('real');
+    expect(await countTransactions()).toBe(1);
+  });
+
+  it('remembers the choice for the next time the app opens', async () => {
+    await setActiveWorkspace('demo');
+    expect(localStorage.getItem(WORKSPACE_KEY)).toBe('demo');
+    await setActiveWorkspace('real');
+    expect(localStorage.getItem(WORKSPACE_KEY)).toBe('real');
   });
 });

@@ -27,7 +27,7 @@ interface Pending {
 }
 
 export function ImportRoute() {
-  const { rules, categories, batches, refresh, undoBatch, saveSource } = useStore();
+  const { rules, categories, batches, refresh, undoBatch, saveSource, workspace } = useStore();
   const [pending, setPending] = useState<Pending | null>(null);
   const [result, setResult] = useState<{ stats: ImportStats; label: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -132,6 +132,13 @@ export function ImportRoute() {
           already have are recognised and skipped.
         </p>
       </div>
+
+      {workspace === 'demo' && (
+        <div className="callout warn">
+          You are in the demo household. Anything imported now is added to the demo, not to your own
+          data. Switch to your data first if this is a real statement.
+        </div>
+      )}
 
       <div
         className={`dropzone ${dragging ? 'dragging' : ''}`}

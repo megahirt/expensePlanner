@@ -23,8 +23,63 @@ import type {
 } from '@/types/models';
 import { defaultSettings } from '@/types/models';
 
-export const DB_NAME = 'expenseplanner';
 export const DB_VERSION = 1;
+
+/**
+ * Two separate sets of data live side by side in one install: what the user
+ * imported, and a made-up demo household. Each is its own database, so nothing
+ * done in one — rows, rules, categories, confirmed matches — can ever appear in
+ * the other. Separate databases rather than a flag on each row, because a flag
+ * is only as good as the one query that forgets to filter on it.
+ */
+export type Workspace = 'real' | 'demo';
+
+export const DB_NAMES: Record<Workspace, string> = {
+  // The original name, so data imported before workspaces existed is simply
+  // "your data" with no migration.
+  real: 'expenseplanner',
+  demo: 'expenseplanner-demo',
+};
+
+export const WORKSPACE_KEY = 'expenseplanner:workspace';
+
+function readSavedWorkspace(): Workspace {
+  try {
+    return globalThis.localStorage?.getItem(WORKSPACE_KEY) === 'demo' ? 'demo' : 'real';
+  } catch {
+    return 'real';
+  }
+}
+
+let activeWorkspace: Workspace = readSavedWorkspace();
+
+export function getActiveWorkspace(): Workspace {
+  return activeWorkspace;
+}
+
+/**
+ * Point every later read and write at the other set of data.
+ *
+ * The open connection is closed first, so nothing already in flight can land
+ * in the database that was just left.
+ */
+export async function setActiveWorkspace(workspace: Workspace): Promise<void> {
+  const open = dbPromise;
+  dbPromise = null;
+  activeWorkspace = workspace;
+  try {
+    globalThis.localStorage?.setItem(WORKSPACE_KEY, workspace);
+  } catch {
+    /* storage unavailable: the choice still holds for this page */
+  }
+  if (open) {
+    try {
+      (await open).close();
+    } catch {
+      /* it never opened */
+    }
+  }
+}
 
 interface ExpenseDB extends DBSchema {
   transactions: {
@@ -57,7 +112,7 @@ let dbPromise: Promise<ExpenseDatabase> | null = null;
 
 export function getDb(): Promise<ExpenseDatabase> {
   if (!dbPromise) {
-    dbPromise = openDB<ExpenseDB>(DB_NAME, DB_VERSION, {
+    dbPromise = openDB<ExpenseDB>(DB_NAMES[activeWorkspace], DB_VERSION, {
       upgrade(db, oldVersion) {
         if (oldVersion < 1) {
           const tx = db.createObjectStore('transactions', { keyPath: 'id' });
@@ -415,10 +470,13 @@ export async function undoImportBatch(batchId: string): Promise<{ removed: numbe
   return { removed, restored };
 }
 
-/** Wipe everything. Used by "start over" and by the export round-trip test. */
+/**
+ * Wipe everything in the active workspace, settings included. The other
+ * workspace is a different database and is not touched.
+ */
 export async function clearAllData(): Promise<void> {
   const db = await getDb();
-  const stores = ['transactions', 'categories', 'rules', 'sources', 'links', 'importBatches'] as const;
+  const stores = ['transactions', 'categories', 'rules', 'sources', 'links', 'importBatches', 'settings'] as const;
   const tx = db.transaction(stores, 'readwrite');
   await Promise.all(stores.map((s) => tx.objectStore(s).clear()));
   await tx.done;

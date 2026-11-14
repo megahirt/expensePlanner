@@ -1,0 +1,22 @@
+{
+  "year": 2025,
+  "accounts": [
+    {
+      "file": "schwab-checking.csv",
+      "label": "Schwab Checking …4471"
+    },
+    {
+      "file": "chase-sapphire.csv",
+      "label": "Chase Sapphire …8842"
+    },
+    {
+      "file": "amex-blue-cash.csv",
+      "label": "Amex Blue Cash …1006"
+    },
+    {
+      "file": "credit-union-savings.csv",
+      "label": "Cascade CU Savings …3390"
+    }
+  ],
+  "amazon": "amazon-orders.html"
+}

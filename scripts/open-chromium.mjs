@@ -15,14 +15,14 @@
  *   npm run chromium -- --no-build # skip the rebuild
  *   npm run chromium:demo          # open with a made-up household loaded
  *
- * The demo uses a second profile, .chromium-profile-demo/, so made-up data and
- * real data can never end up in the same place. The first run imports the files
- * in tests/fixtures/demo/ through the real Import screen; later runs find the
- * data already there. Delete that folder to start the demo over.
+ * The demo household ships inside the extension, in its own database, and the
+ * app can switch to it from Settings in any window. `chromium:demo` just opens
+ * straight into it. It keeps a second profile, .chromium-profile-demo/, only so
+ * the demo window and the normal one can be open at the same time.
  */
 import { chromium } from 'playwright';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -50,43 +50,12 @@ mkdirSync(PROFILE, { recursive: true });
 // the app's data in IndexedDB, neither of which this touches.
 rmSync(join(PROFILE, 'Default', 'Service Worker'), { recursive: true, force: true });
 
-/**
- * Import the demo household through the real Import screen, exactly as a person
- * would: drop each bank file, name the account, confirm; then paste the Amazon
- * page. Skipped when the profile already holds data, so reopening the demo
- * keeps whatever categorizing and reviewing was done last time.
- */
-async function loadDemoData(page) {
-  const { DEMO_ACCOUNTS, DEMO_AMAZON_FILE, DEMO_DIR } = await import('./generate-demo-data.mjs');
-  const held = async () =>
-    Number(((await page.textContent('.topbar-right')) ?? '').match(/([\d,]+) transactions/)?.[1]?.replace(/,/g, '') ?? '0');
-
-  await page.waitForSelector('.topbar-right:has-text("transactions")', { timeout: 15_000 });
-  if ((await held()) > 0) {
-    console.log(`Demo data already loaded (${await held()} transactions).`);
-    return;
-  }
-
-  console.log('Loading the demo household...');
-  await page.click('.nav button:has-text("Import")');
-  for (const { file, label } of DEMO_ACCOUNTS) {
-    await page.waitForSelector('.dropzone');
-    await page.setInputFiles('.dropzone input[type=file]', join(DEMO_DIR, file));
-    await page.waitForSelector('.wizard');
-    await page.fill('.field input[placeholder*="Schwab"]', label);
-    await page.click('.actions button.primary');
-    await page.waitForSelector('.callout.ok', { timeout: 30_000 });
-    console.log(`  ${label}: ${((await page.textContent('.callout.ok')) ?? '').replace(/\s+/g, ' ').trim()}`);
-  }
-
-  await page.click('button:has-text("Paste a saved page instead")');
-  await page.fill('.card textarea', readFileSync(join(DEMO_DIR, DEMO_AMAZON_FILE), 'utf8'));
-  await page.click('button:has-text("Read this page")');
-  await page.waitForSelector('.card .callout.ok', { timeout: 30_000 });
-  console.log(`  Amazon: ${((await page.textContent('.card .callout.ok')) ?? '').trim()}`);
-
-  await page.click('.nav button:has-text("Dashboard")');
-  console.log(`Demo ready: ${await held()} transactions. Nothing in Review has been confirmed yet.`);
+/** Wait for the demo household, which the app loads itself on first opening. */
+async function waitForDemo(page) {
+  await page.waitForSelector('.demo-banner', { timeout: 15_000 });
+  await page.waitForSelector('.topbar-right:has-text("transactions")', { timeout: 60_000 });
+  const held = ((await page.textContent('.topbar-right')) ?? '').match(/([\d,]+) transactions/)?.[1] ?? '0';
+  console.log(`Demo household is showing: ${held} transactions. Your own data is a switch away in Settings.`);
 }
 
 let context;
@@ -117,9 +86,9 @@ try {
     context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker', { timeout: 15_000 }));
   const extensionId = new URL(worker.url()).host;
   const page = context.pages()[0] ?? (await context.newPage());
-  await page.goto(`chrome-extension://${extensionId}/app.html`);
+  await page.goto(`chrome-extension://${extensionId}/app.html${DEMO ? '?workspace=demo' : ''}`);
   console.log(`Dev Chromium is open with expensePlanner loaded (${extensionId}).`);
-  if (DEMO) await loadDemoData(page);
+  if (DEMO) await waitForDemo(page);
 } catch (err) {
   console.log(`Chromium is open, but setup did not finish: ${err instanceof Error ? err.message : err}`);
 }

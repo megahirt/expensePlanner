@@ -31,4 +31,5 @@ export const DEMO_YEAR: number;
 export const DEMO_DIR: string;
 export const DEMO_ACCOUNTS: Array<{ file: string; label: string }>;
 export const DEMO_AMAZON_FILE: string;
+export const DEMO_INDEX_FILE: string;
 export function generateDemoData(): { files: Record<string, string>; manifest: DemoManifest };

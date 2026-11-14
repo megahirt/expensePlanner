@@ -4,7 +4,7 @@
  * across every kind of source the app can read, so the extension can be tried
  * end to end without anyone's real finances.
  *
- *   node scripts/generate-demo-data.mjs          # rewrite tests/fixtures/demo/
+ *   node scripts/generate-demo-data.mjs          # rewrite public/demo/
  *   node scripts/generate-demo-data.mjs --check  # fail if the files are stale
  *
  * The output is deterministic: a fixed seed, no clock, no locale. Running it
@@ -29,7 +29,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const DEMO_YEAR = 2025;
-export const DEMO_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'tests', 'fixtures', 'demo');
+export const DEMO_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'demo');
 
 export const DEMO_ACCOUNTS = [
   { file: 'schwab-checking.csv', label: 'Schwab Checking …4471' },
@@ -38,6 +38,8 @@ export const DEMO_ACCOUNTS = [
   { file: 'credit-union-savings.csv', label: 'Cascade CU Savings …3390' },
 ];
 export const DEMO_AMAZON_FILE = 'amazon-orders.html';
+/** Lists the files and their account labels, for the in-app demo loader. */
+export const DEMO_INDEX_FILE = 'index.json';
 
 // ---------------------------------------------------------------- utilities
 
@@ -619,6 +621,9 @@ ${orders.map(renderOrder).join('\n\n')}
 </div>
 </body></html>
 `;
+
+  files[DEMO_INDEX_FILE] =
+    JSON.stringify({ year: DEMO_YEAR, accounts: DEMO_ACCOUNTS, amazon: DEMO_AMAZON_FILE }, null, 2) + '\n';
 
   // -------------------------------------------------------------- manifest
   // What the data is *meant* to contain, stated independently of the files, so

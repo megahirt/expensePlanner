@@ -17,8 +17,21 @@ import { DataTransfer } from '../components/DataTransfer';
 import type { Filters } from '@/lib/filter';
 
 export function SettingsRoute({ filters }: { filters: Filters }) {
-  const { rules, categories, transactions, settings, saveRules, saveCategory, saveSettings, rerunRules, refresh } =
-    useStore();
+  const {
+    rules,
+    categories,
+    transactions,
+    settings,
+    workspace,
+    saveRules,
+    saveCategory,
+    saveSettings,
+    rerunRules,
+    refresh,
+    switchWorkspace,
+    resetDemo,
+    clearMyData,
+  } = useStore();
   const [rerunResult, setRerunResult] = useState<string | null>(null);
   const [newCategory, setNewCategory] = useState('');
   const [showAllRules, setShowAllRules] = useState(false);
@@ -57,6 +70,53 @@ export function SettingsRoute({ filters }: { filters: Filters }) {
         <h1>Settings</h1>
         <p className="subtitle">Categories, rules, and how your data is handled.</p>
       </div>
+
+      <section className="card">
+        <h2>Which data</h2>
+        <p className="dim">
+          Your own data and the demo household are kept in separate databases. Rules, categories and
+          anything you confirm in one never appear in the other.
+        </p>
+        <div className="workspace-choice" role="radiogroup" aria-label="Which data">
+          <label className="radio">
+            <input
+              type="radio"
+              name="workspace"
+              checked={workspace === 'real'}
+              onChange={() => void switchWorkspace('real')}
+            />
+            <span>
+              <strong>Your data</strong>
+              <span className="dim"> — what you import yourself</span>
+            </span>
+          </label>
+          <label className="radio">
+            <input
+              type="radio"
+              name="workspace"
+              checked={workspace === 'demo'}
+              onChange={() => void switchWorkspace('demo')}
+            />
+            <span>
+              <strong>Demo household</strong>
+              <span className="dim"> — a made-up family of five and their 2025</span>
+            </span>
+          </label>
+        </div>
+        {workspace === 'demo' && (
+          <div className="actions left">
+            <button
+              onClick={() => {
+                if (window.confirm('Reset the demo household? Everything you changed in the demo is discarded. Your own data is not affected.')) {
+                  void resetDemo();
+                }
+              }}
+            >
+              Reset demo data
+            </button>
+          </div>
+        )}
+      </section>
 
       <section className="card">
         <h2>Categorization rules</h2>
@@ -190,6 +250,40 @@ export function SettingsRoute({ filters }: { filters: Filters }) {
           the moment you run an Amazon import, and can be revoked at any time from
           chrome://extensions.
         </p>
+
+        <h3 className="danger-heading">Delete all data</h3>
+        {workspace === 'real' ? (
+          <>
+            <p className="dim">
+              Removes every transaction you imported, along with your rules, categories, confirmed
+              matches, saved file layouts and import history. The starter categories and rules come
+              back. This cannot be undone, so save a backup above first if you might want any of it
+              again. The demo household is not affected.
+            </p>
+            <div className="actions left">
+              <button
+                className="danger"
+                onClick={() => {
+                  const n = transactions.length.toLocaleString();
+                  if (
+                    window.confirm(
+                      `Delete all your data? This removes ${n} ${transactions.length === 1 ? 'transaction' : 'transactions'} and every rule, category and match you made. It cannot be undone.`,
+                    )
+                  ) {
+                    void clearMyData();
+                  }
+                }}
+              >
+                Delete all my data
+              </button>
+            </div>
+          </>
+        ) : (
+          <p className="dim">
+            You are looking at the demo household. Use <strong>Reset demo data</strong> at the top of
+            this page to start the demo over, or switch to your data to delete what you imported.
+          </p>
+        )}
       </section>
     </div>
   );
