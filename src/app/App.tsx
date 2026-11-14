@@ -5,9 +5,10 @@ import { TransactionsRoute } from './routes/Transactions';
 import { SettingsRoute } from './routes/Settings';
 import { DashboardRoute } from './routes/Dashboard';
 import { ReviewRoute } from './routes/Review';
+import { CategorizeRoute } from './routes/Categorize';
 import { emptyFilters, type Filters } from '@/lib/filter';
 
-const ROUTES = ['Dashboard', 'Transactions', 'Import', 'Review', 'Settings'] as const;
+const ROUTES = ['Dashboard', 'Transactions', 'Categorize', 'Import', 'Review', 'Settings'] as const;
 export type Route = (typeof ROUTES)[number];
 
 export function App() {
@@ -76,10 +77,20 @@ function RouteView({
             setFilters(next);
             onNavigate('Transactions');
           }}
+          onCategorize={() => onNavigate('Categorize')}
         />
       );
     case 'Transactions':
       return <TransactionsRoute filters={filters} onFiltersChange={setFilters} />;
+    case 'Categorize':
+      return (
+        <CategorizeRoute
+          onDrillDown={(next) => {
+            setFilters(next);
+            onNavigate('Transactions');
+          }}
+        />
+      );
     case 'Import':
       return <ImportRoute />;
     case 'Review':

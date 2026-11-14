@@ -597,3 +597,19 @@ p.small { font-size: 12px; }
   .candidate-rows { grid-template-columns: 1fr; }
   .candidate-join { display: none; }
 }
+
+/* Categorize */
+table.categorize td { vertical-align: top; }
+table.categorize button.merchant-name { font-weight: 600; font-size: 14px; padding: 0; border: 0; background: none; color: var(--text); cursor: pointer; }
+table.categorize button.merchant-name:hover { text-decoration: underline; }
+.recurring table.preview button.link { border: 0; background: none; padding: 0; color: var(--text); cursor: pointer; }
+.recurring table.preview button.link:hover { text-decoration: underline; }
+table.categorize .pill { margin-left: 8px; }
+table.categorize .example { font-size: 12px; margin-top: 2px; }
+table.categorize .actions { gap: 8px; }
+table.categorize .category-picker { max-width: 200px; }
+table.categorize button.suggestion { white-space: nowrap; }
+.source-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 4px 20px; }
+.source-list .num { display: inline-block; min-width: 52px; text-align: right; margin-right: 6px; font-weight: 600; }
+.category-reason { font-size: 12px; margin: -6px 0 0; }
+.recurring table.preview { margin-top: 10px; }

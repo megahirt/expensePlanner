@@ -19,6 +19,7 @@
     "chromium": "node scripts/open-chromium.mjs",
     "chromium:demo": "node scripts/open-chromium.mjs --demo",
     "demo:data": "node scripts/generate-demo-data.mjs",
+    "directory:build": "node scripts/build-merchant-directory.mjs",
     "verify": "npm run typecheck && npm run lint && npm test && npm run build && npm run smoke"
   },
   "dependencies": {

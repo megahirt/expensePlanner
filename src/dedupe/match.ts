@@ -195,10 +195,22 @@ export function applyLink(
   candidate: Candidate,
 ): { canonical: Transaction; linked: Transaction } {
   if (candidate.kind === 'same_purchase') {
-    return {
-      canonical: candidate.canonical,
-      linked: { ...candidate.linked, supersededBy: candidate.canonical.id },
-    };
+    const order = candidate.linked;
+    let canonical = candidate.canonical;
+    // The card only says "AMZN Mktp"; the order says what was bought. Once the
+    // two are known to be one purchase, the charge (which is the half that
+    // counts) takes the order's category, unless the user set the charge's
+    // category by hand.
+    const orderKnows = order.categoryId && (order.categorySource === 'items' || order.categorySource === 'manual');
+    if (orderKnows && canonical.categorySource !== 'manual') {
+      canonical = {
+        ...canonical,
+        categoryId: order.categoryId,
+        categorySource: 'linked',
+        categoryReason: `It paid for an Amazon order: ${order.description}`,
+      };
+    }
+    return { canonical, linked: { ...order, supersededBy: candidate.canonical.id } };
   }
 
   const refundCents = Math.min(candidate.canonical.amountCents, Math.abs(candidate.linked.amountCents));
@@ -221,6 +233,11 @@ export function unapplyLink(
     if (linked?.supersededBy === link.canonicalId) {
       const { supersededBy: _drop, ...rest } = linked;
       changed.push(rest as Transaction);
+    }
+    // Hand the charge's category back to the ordinary rules.
+    if (canonical?.categorySource === 'linked') {
+      const { categoryReason: _reason, ...rest } = canonical;
+      changed.push({ ...rest, categoryId: null, categorySource: 'default' } as Transaction);
     }
   } else {
     if (canonical?.supersededBy === link.linkedId) {

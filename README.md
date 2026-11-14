@@ -105,11 +105,40 @@ money worth chasing.
 
 ### Categories
 
-Transactions are categorized by rules: first match wins, entirely on your
-machine, no network calls. A hundred starter rules cover common merchants. When
-you set a category by hand, you are offered a rule so it applies from then on —
-and **a category you set by hand is never overwritten**, not by a re-import and
-not by re-running rules.
+Every transaction is categorized on your machine, with no network calls and no
+AI model. Each source of knowledge is tried in turn, most trustworthy first, and
+the first with an answer wins:
+
+1. **Your own rules.** Created when you categorize something and choose to
+   remember it.
+2. **What an Amazon order contained.** An order of dog food is household, not
+   "Shopping" just because it came from Amazon. Once you match an order to its
+   card charge in **Review**, the charge takes the order's category too.
+3. **Starter rules.** About a hundred, for common merchants.
+4. **A built-in directory of well-known merchants.** About 3,800 US brand names.
+5. **Your bank's own category**, where the export has one (Chase and Amex do).
+6. **A telling word in the name**: "orthodontics", "mortgage", "auto repair".
+
+The same row always gets the same answer, and the answer comes with its reason:
+open any transaction to see why it landed where it did. **A category you set by
+hand is never overwritten**, not by a re-import and not by re-running rules.
+
+Whatever is left (cash, paper checks, payments to people) shows up on the
+**Categorize** screen grouped by merchant, biggest first. Pick a category once
+and every row from that merchant follows, now and on future imports. Where a
+merchant resembles one you have already categorized, the likely category is
+offered as a one-click suggestion; nothing is applied until you click.
+
+The **Dashboard** also lists recurring charges (subscriptions and bills), found
+by looking for the same merchant charging at a steady rhythm.
+
+If you imported data before these existed, press **Re-run rules on all
+transactions** in Settings to apply them to what you already have.
+
+The merchant directory is derived from the OpenStreetMap
+[name-suggestion-index](https://github.com/osmlab/name-suggestion-index); see
+[THIRD_PARTY_NOTICES.md](public/THIRD_PARTY_NOTICES.md). `npm run directory:build`
+regenerates it.
 
 ### Exporting and sharing between two computers
 
@@ -166,8 +195,9 @@ demo data and real data never mix. Delete that folder to start over.
 The data is built to show the parts that matter: every non-cancelled Amazon order
 has a matching card charge waiting in **Review**, some orders were cancelled,
 returned or partly returned, a few refunds only show up as card credits, and two
-returns never got a refund at all. A number of merchants have no starter rule, so
-there is real categorizing left to do.
+returns never got a refund at all. A handful of merchants (checks, cash, payments
+to people) cannot be categorized automatically, so the **Categorize** screen has
+something to do.
 
 The files live in `tests/fixtures/demo/` and can also be dragged onto the
 **Import** screen by hand (paste `amazon-orders.html` into *Paste a saved page

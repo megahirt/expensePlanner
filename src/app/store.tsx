@@ -29,14 +29,14 @@ import {
   putRules,
   putSettings,
   putSource,
+  putTransaction,
   setCategoryForMany,
   undoImportBatch,
   updateUserFields,
-  upsertTransactions,
   type UserEditableFields,
 } from '@/lib/db';
 import { DEFAULT_CATEGORIES, defaultRules, needsSeeding } from '@/categorize/defaults';
-import { recategorizeAll } from '@/categorize/engine';
+import { proposeRuleFromTransaction, recategorizeAll } from '@/categorize/engine';
 import type {
   Category,
   ImportBatch,
@@ -63,6 +63,8 @@ interface StoreActions {
   refresh: () => Promise<void>;
   editTransaction: (id: string, patch: Partial<UserEditableFields>) => Promise<void>;
   bulkCategorize: (ids: readonly string[], categoryId: string | null) => Promise<void>;
+  /** File every row from a merchant under a category, by creating a rule for it. */
+  categorizeMerchant: (merchant: string, categoryId: string) => Promise<void>;
   saveRule: (rule: Rule) => Promise<void>;
   saveRules: (rules: readonly Rule[]) => Promise<void>;
   saveCategory: (category: Category) => Promise<void>;
@@ -128,6 +130,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await setCategoryForMany(ids, categoryId);
         await refresh();
       },
+      categorizeMerchant: async (merchant, categoryId) => {
+        const [transactions, rules, categories] = await Promise.all([
+          getAllTransactions(),
+          getRules(),
+          getCategories(),
+        ]);
+        const order = rules.reduce((max, r) => Math.max(max, r.order), 0) + 1;
+        const rule = proposeRuleFromTransaction({ merchant }, categoryId, order, `rule-learned-${Date.now()}`);
+        await putRules([rule]);
+        const { changed } = recategorizeAll(transactions, [...rules, rule], categories);
+        for (const t of changed) await putTransaction(t);
+        await refresh();
+      },
       saveRule: async (rule) => {
         await putRules([rule]);
         await refresh();
@@ -158,10 +173,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           getRules(),
           getCategories(),
         ]);
-        const { changed, skippedManual } = recategorizeAll(transactions, rules, categories);
-        if (changed.length > 0) await upsertTransactions(changed);
+        const { changed, categoryChanges, skippedManual } = recategorizeAll(transactions, rules, categories);
+        // Written directly: these are decisions about rows already held, and a
+        // row that has just lost its category must be able to say so.
+        for (const t of changed) await putTransaction(t);
         await refresh();
-        return { changed: changed.length, skippedManual };
+        return { changed: categoryChanges, skippedManual };
       },
     }),
     [refresh],

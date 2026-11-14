@@ -89,6 +89,16 @@ export function TransactionDetail({ transaction, onClose }: { transaction: Trans
           />
         </label>
 
+        {transaction.categoryId && (
+          <p className="dim category-reason">
+            {transaction.categorySource === 'manual'
+              ? 'You set this category.'
+              : transaction.categoryReason
+                ? `Why: ${transaction.categoryReason}.`
+                : 'Set automatically.'}
+          </p>
+        )}
+
         {offerRule && (
           <div className="callout ok">
             <div>

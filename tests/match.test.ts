@@ -209,3 +209,55 @@ describe('unapplyLink', () => {
     expect(order2?.refundedCents).toBe(0);
   });
 });
+
+describe('a matched card charge takes the order\'s category', () => {
+  const pair = (orderOver: Partial<Transaction> = {}, chargeOver: Partial<Transaction> = {}) => {
+    const charge = txn({ id: 'charge', date: '2025-03-05', ...chargeOver });
+    const amazonOrder = order({
+      id: 'order',
+      description: 'Dog Food Salmon Recipe 30 lb',
+      categoryId: 'cat-household',
+      categorySource: 'items',
+      ...orderOver,
+    });
+    return proposeLinks([charge, amazonOrder])[0]!;
+  };
+
+  it('moves the money to what was actually bought', () => {
+    // The charge is the half that counts toward totals, and all it says is
+    // "AMZN Mktp". Without this, every Amazon purchase would stay in Shopping
+    // however well the order itself was understood.
+    const { canonical } = applyLink(pair());
+
+    expect(canonical.categoryId).toBe('cat-household');
+    expect(canonical.categorySource).toBe('linked');
+    expect(canonical.categoryReason).toBe('It paid for an Amazon order: Dog Food Salmon Recipe 30 lb');
+  });
+
+  it('respects a category the user set on the order by hand', () => {
+    const { canonical } = applyLink(pair({ categoryId: 'cat-gifts', categorySource: 'manual' }));
+    expect(canonical.categoryId).toBe('cat-gifts');
+  });
+
+  it('never overrides a category the user set on the charge', () => {
+    const { canonical } = applyLink(pair({}, { categoryId: 'cat-kids', categorySource: 'manual' }));
+    expect(canonical.categoryId).toBe('cat-kids');
+    expect(canonical.categorySource).toBe('manual');
+  });
+
+  it('leaves the charge alone when the order was only filed by the generic Amazon rule', () => {
+    const { canonical } = applyLink(pair({ categoryId: 'cat-shopping', categorySource: 'rule' }));
+    expect(canonical.categorySource).toBe('rule');
+  });
+
+  it('gives the category back when the match is undone', () => {
+    const candidate = pair();
+    const { canonical, linked } = applyLink(candidate);
+    const restored = unapplyLink(candidateToLink(candidate, 'confirmed'), [canonical, linked]);
+
+    const charge = restored.find((t) => t.id === 'charge');
+    expect(charge?.categorySource).toBe('default');
+    expect(charge?.categoryId).toBeNull();
+    expect(charge?.categoryReason).toBeUndefined();
+  });
+});

@@ -16,7 +16,7 @@ import { emptyFilters, type Filters } from '@/lib/filter';
 import { useStore } from '../store';
 
 export function ReviewRoute({ onDrillDown }: { onDrillDown: (f: Filters) => void }) {
-  const { transactions, links, settings, refresh } = useStore();
+  const { transactions, links, settings, refresh, rerunRules } = useStore();
   const [busy, setBusy] = useState<string | null>(null);
 
   const candidates = useMemo(() => proposeLinks(transactions, links), [transactions, links]);
@@ -54,7 +54,8 @@ export function ReviewRoute({ onDrillDown }: { onDrillDown: (f: Filters) => void
     if (restored.length > 0) await upsertTransactions(restored);
     for (const t of restored) await putTransaction(t);
     await deleteLink(linkId);
-    await refresh();
+    // A charge that had borrowed its category from the order needs one of its own again.
+    await rerunRules();
     setBusy(null);
   };
 

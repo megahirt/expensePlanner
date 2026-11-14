@@ -32,7 +32,25 @@ export const NON_SPEND_STATUSES: ReadonlySet<ItemStatus> = new Set<ItemStatus>([
 ]);
 
 /** Where a category assignment came from. Manual always outranks a rule. */
-export type CategorySource = 'manual' | 'rule' | 'default' | 'imported';
+export type CategorySource =
+  /** Set by hand. Never overwritten by anything automatic. */
+  | 'manual'
+  /** A rule matched: one of the user's own, or a starter rule. */
+  | 'rule'
+  /** Nothing has categorized this row. */
+  | 'default'
+  /** Carried in from another install's export. */
+  | 'imported'
+  /** The merchant is in the bundled directory of well-known brands. */
+  | 'directory'
+  /** The bank's own category column, translated. */
+  | 'bank'
+  /** A telling word in the merchant name ("orthodontics", "mortgage"). */
+  | 'keyword'
+  /** What an Amazon order contained. */
+  | 'items'
+  /** Taken from the Amazon order this card charge was matched to in Review. */
+  | 'linked';
 
 /** A single item within an order (Amazon gives us this; bank CSVs do not). */
 export interface LineItem {
@@ -72,6 +90,9 @@ export interface Transaction {
   currency: string;
   categoryId: string | null;
   categorySource: CategorySource;
+  /** One plain sentence saying why this category was chosen, so an automatic
+   *  assignment can always be inspected rather than taken on trust. */
+  categoryReason?: string;
   status: ItemStatus;
   statusRaw?: string;
   /** Portion of this transaction refunded, in cents (always >= 0). */

@@ -121,7 +121,15 @@ describe('recategorizeAll', () => {
 
   it('reports nothing changed when rules already agree', () => {
     const settled = txn({ categoryId: 'cat-groceries', categorySource: 'rule' });
-    expect(recategorizeAll([settled], [rule()], CATS).changed).toHaveLength(0);
+
+    // A row categorized before explanations existed gains one, without that
+    // counting as its category having changed.
+    const first = recategorizeAll([settled], [rule()], CATS);
+    expect(first.categoryChanges).toBe(0);
+    expect(first.changed[0]?.categoryReason).toContain('trader joe');
+
+    // After that, running again really does change nothing.
+    expect(recategorizeAll(first.changed, [rule()], CATS).changed).toHaveLength(0);
   });
 });
 

@@ -193,11 +193,20 @@ export async function upsertTransactions(incoming: readonly Transaction[]): Prom
 
     // A rule-assigned category may be refreshed by a later rule run, but a
     // manual assignment is the user's decision and is never overwritten here.
-    if (existing.categorySource !== 'manual' && row.categoryId && row.categoryId !== existing.categoryId) {
+    // Neither is one taken from a matched Amazon order in Review, which knows
+    // more about the purchase than a card description ever can.
+    const settled = existing.categorySource === 'manual' || existing.categorySource === 'linked';
+    const differs =
+      row.categoryId !== existing.categoryId ||
+      row.categorySource !== existing.categorySource ||
+      row.categoryReason !== existing.categoryReason;
+    if (!settled && row.categoryId && differs) {
       before.categoryId = existing.categoryId;
       before.categorySource = existing.categorySource;
       merged.categoryId = row.categoryId;
       merged.categorySource = row.categorySource;
+      if (row.categoryReason !== undefined) merged.categoryReason = row.categoryReason;
+      else delete merged.categoryReason;
       changed = true;
     }
 

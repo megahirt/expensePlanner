@@ -16,6 +16,7 @@ import { runImport } from '@/lib/import';
 import { clearAllData, countTransactions, getAllTransactions } from '@/lib/db';
 import { headerHash } from '@/lib/ids';
 import { applyFilters, emptyFilters, totals } from '@/lib/filter';
+import { detectRecurring } from '@/lib/recurring';
 import { applyLink, candidateToLink, proposeLinks, unsettledReturns } from '@/dedupe/match';
 import { DEFAULT_CATEGORIES, defaultRules } from '@/categorize/defaults';
 import { effectiveCents, type Transaction } from '@/types/models';
@@ -181,12 +182,51 @@ describe('demo household, imported together', () => {
     expect(await countTransactions()).toBe(manifest.totalRows);
   });
 
-  it('categorizes most rows with the starter rules, and leaves real work to do', () => {
-    const categorized = all.filter((t) => t.categoryId).length / all.length;
-    // About two thirds: payments to people (Venmo, Zelle) are deliberately left
-    // for the user to categorize rather than being filed as transfers.
-    expect(categorized).toBeGreaterThan(0.6);
-    expect(categorized).toBeLessThan(0.97);
+  it('categorizes nearly everything, and says why each time', () => {
+    const categorized = all.filter((t) => t.categoryId);
+    expect(categorized.length / all.length).toBeGreaterThan(0.9);
+    expect(categorized.every((t) => t.categoryReason)).toBe(true);
+
+    // Every source of knowledge earns its place on realistic data.
+    const sources = new Set(categorized.map((t) => t.categorySource));
+    expect([...sources].sort()).toEqual(['bank', 'directory', 'items', 'keyword', 'rule']);
+  });
+
+  it('leaves the genuinely unknowable for a person to decide', () => {
+    // Cash, paper checks and payments to people say nothing about what they
+    // were for. Guessing would be worse than asking.
+    const unknown = new Set(all.filter((t) => !t.categoryId).map((t) => t.merchant));
+    expect(unknown).toContain('Check Paid');
+    expect(unknown).toContain('Venmo Payment');
+    expect(unknown.size).toBeLessThan(10);
+  });
+
+  it('files Amazon orders by what was in them, not all under Shopping', () => {
+    const orders = all.filter((t) => t.sourceId === 'amazon');
+    const byItems = orders.filter((t) => t.categorySource === 'items');
+    expect(byItems.length / orders.length).toBeGreaterThan(0.6);
+    expect(new Set(byItems.map((t) => t.categoryId)).size).toBeGreaterThanOrEqual(4);
+
+    const dogFood = orders.find((t) => t.items?.length === 1 && /dog food/i.test(t.items[0]!.name));
+    expect(dogFood?.categoryId).toBe('cat-household');
+  });
+
+  it('finds the subscriptions and bills', () => {
+    const recurring = detectRecurring(all);
+    const names = recurring.map((r) => r.merchant);
+
+    for (const expected of ['Netflix.com', 'Spotify Usa', 'Rocket Mortgage Loan Pmt', 'Verizon Wireless Payments']) {
+      expect(names, expected).toContain(expected);
+    }
+    // One merchant billing two different subscriptions is two findings.
+    expect(recurring.filter((r) => r.merchant === 'Apple.com Bill').map((r) => r.typicalCents).sort()).toEqual([299, 999]);
+    // A bill that swings with the season still counts, and says its amount varies.
+    expect(recurring.find((r) => r.merchant === 'Puget Sound Energy Billpay')?.fixedAmount).toBe(false);
+    // Habits are not subscriptions, however often they happen.
+    expect(names).not.toContain('Starbucks');
+    expect(names).not.toContain('Safeway');
+    // Moving money to savings every month is not a charge.
+    expect(names.some((n) => /transfer/i.test(n))).toBe(false);
   });
 
   it('does not count paying off a card, or moving savings, as spending', () => {
@@ -282,6 +322,14 @@ describe('demo household, imported together', () => {
       .filter((t) => t.sourceId === 'amazon')
       .reduce((sum, t) => sum - effectiveCents(t), 0);
     expect(amazonStillCounted).toBe(0);
+
+    // The card only ever said "AMZN Mktp". Once matched, the charge takes on
+    // what the order was for, so the money shows up under the right category.
+    const charges = linkedUp.filter((t) => t.sourceId !== 'amazon' && t.merchant === 'Amazon' && t.amountCents < 0);
+    const inherited = charges.filter((t) => t.categorySource === 'linked');
+    expect(inherited.length / charges.length).toBeGreaterThan(0.6);
+    expect(inherited.every((t) => t.categoryReason?.startsWith('It paid for an Amazon order'))).toBe(true);
+    expect(new Set(inherited.map((t) => t.categoryId)).size).toBeGreaterThanOrEqual(4);
     expect(after).toBeLessThan(before);
     expect(before - after).toBeGreaterThan(manifest.amazon.faceValueCents * 0.8);
   });

@@ -7,7 +7,7 @@
  * just a number.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { formatCents } from '@/lib/money';
 import { monthKey, monthStart, todayIso } from '@/lib/dates';
 import {
@@ -20,14 +20,16 @@ import {
   type Bucket,
   type Filters,
 } from '@/lib/filter';
+import { detectRecurring, recurringMonthlyCents } from '@/lib/recurring';
 import { useStore } from '../store';
 import { RankedBars, SpendOverTime, StatTile, compactMoney } from '../components/charts';
 
 interface Props {
   onDrillDown: (filters: Filters) => void;
+  onCategorize: () => void;
 }
 
-export function DashboardRoute({ onDrillDown }: Props) {
+export function DashboardRoute({ onDrillDown, onCategorize }: Props) {
   const { transactions, categories, settings } = useStore();
   const currency = settings.currency;
 
@@ -81,6 +83,9 @@ export function DashboardRoute({ onDrillDown }: Props) {
   const months = useMemo(() => spendByMonth(spendable).slice(-14), [spendable]);
   const byCategory = useMemo(() => spendByCategory(spendable, categoryNames).slice(0, 10), [spendable, categoryNames]);
   const byMerchant = useMemo(() => spendByMerchant(spendable, 10), [spendable]);
+
+  const recurring = useMemo(() => detectRecurring(spendable), [spendable]);
+  const [showAllRecurring, setShowAllRecurring] = useState(false);
 
   const uncategorized = useMemo(
     () => spendable.filter((t) => !t.categoryId && t.amountCents < 0),
@@ -173,13 +178,13 @@ export function DashboardRoute({ onDrillDown }: Props) {
       {uncategorized.length > 0 && (
         <button
           className="callout warn nudge"
-          onClick={() => onDrillDown({ ...emptyFilters(), uncategorizedOnly: true, direction: 'out' })}
+          onClick={onCategorize}
         >
           <strong>{uncategorized.length} transactions have no category</strong>
           <span className="dim">
             {' '}
-            worth {formatCents(-totals(uncategorized).spentCents, currency)} — categorize them to make
-            these charts honest.
+            worth {formatCents(-totals(uncategorized).spentCents, currency)} — categorize them by
+            merchant to make these charts honest.
           </span>
         </button>
       )}
@@ -206,6 +211,54 @@ export function DashboardRoute({ onDrillDown }: Props) {
           <RankedBars data={byMerchant} currency={currency} onSelect={drillToMerchant} />
         </section>
       </div>
+
+      {recurring.length > 0 && (
+        <section className="card recurring">
+          <h2>Recurring charges</h2>
+          <p className="dim">
+            {recurring.length} subscriptions and bills, about{' '}
+            <strong>{formatCents(recurringMonthlyCents(recurring), currency)} a month</strong>. Found by
+            looking for the same merchant charging at a steady rhythm.
+          </p>
+          <table className="preview">
+            <thead>
+              <tr>
+                <th>Merchant</th>
+                <th>How often</th>
+                <th className="right">Usual charge</th>
+                <th className="right">Per year</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(showAllRecurring ? recurring : recurring.slice(0, 8)).map((r) => (
+                <tr key={`${r.merchant}-${r.typicalCents}`} className="recurring-row">
+                  <td>
+                    <button
+                      className="link"
+                      onClick={() => onDrillDown({ ...emptyFilters(), search: r.merchant, direction: 'out' })}
+                    >
+                      {r.merchant}
+                    </button>
+                  </td>
+                  <td className="dim">{r.cadence}</td>
+                  <td className="right num">
+                    {formatCents(r.typicalCents, currency)}
+                    {!r.fixedAmount && <span className="dim"> varies</span>}
+                  </td>
+                  <td className="right num">{formatCents(r.yearlyCents, currency)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {recurring.length > 8 && (
+            <div className="actions left">
+              <button className="link" onClick={() => setShowAllRecurring((v) => !v)}>
+                {showAllRecurring ? 'Show fewer' : `Show all ${recurring.length}`}
+              </button>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

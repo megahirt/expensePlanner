@@ -343,6 +343,41 @@ try {
   // The row categorized by hand earlier must be reported as left alone.
   check('re-running rules leaves hand-categorized rows alone', /left alone/.test(rerun), rerun.trim());
 
+  // ---- Categorize: clear a whole merchant in one click ----
+  // A paper check says nothing about what it was for, so no automatic step can
+  // place it. Import a few and settle them from the Categorize screen.
+  await page.click('.nav button:has-text("Import")');
+  await page.waitForSelector('.dropzone');
+  const checksCsv = join(userDataDir, 'checks.csv');
+  writeFileSync(
+    checksCsv,
+    'Post Date,Payee,Amount\n2025-03-06,Check Paid #1041,-240.00\n2025-04-06,Check Paid #1042,-240.00\n2025-05-06,Check Paid #1043,-240.00\n',
+  );
+  await page.setInputFiles('.dropzone input[type=file]', checksCsv);
+  await page.waitForSelector('.wizard');
+  await page.fill('.field input[placeholder*="Schwab"]', 'Checking 0001');
+  await page.click('.actions button.primary');
+  await page.waitForSelector('.callout.ok');
+
+  await page.click('.nav button:has-text("Categorize")');
+  await page.waitForSelector('.merchant-group');
+  const checkRow = page.locator('.merchant-group', { hasText: 'Check Paid' });
+  check(
+    'uncategorized rows are grouped by merchant',
+    (await checkRow.count()) === 1 && ((await checkRow.locator('td >> nth=1').textContent()) ?? '').trim() === '3',
+    ((await checkRow.textContent()) ?? '').replace(/\s+/g, ' ').trim().slice(0, 60),
+  );
+  check('a steady monthly charge is flagged as recurring', /monthly/.test((await checkRow.textContent()) ?? ''));
+
+  await checkRow.locator('.category-picker').selectOption({ label: 'Kids & School' });
+  await page.waitForSelector('.callout.ok', { timeout: 10_000 });
+  const filed = ((await page.textContent('.callout.ok')) ?? '').trim();
+  check('one choice files every row from that merchant', /3 rows from Check Paid/.test(filed), filed);
+  check(
+    'the merchant leaves the list once it is settled',
+    (await page.locator('.merchant-group', { hasText: 'Check Paid' }).count()) === 0,
+  );
+
   // ---- Dashboard ----
   await page.click('.nav button:has-text("Dashboard")');
   await page.waitForSelector('.stat-row');

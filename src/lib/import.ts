@@ -24,7 +24,7 @@ import type {
 } from '@/types/models';
 import { emptyStats } from '@/types/models';
 import type { RawTransaction } from '@/adapters/types';
-import { categorize } from '@/categorize/engine';
+import { classify } from '@/categorize/engine';
 
 export interface ImportOptions {
   sourceId: string;
@@ -94,10 +94,11 @@ export function toTransactions(
     if (row.items !== undefined) base.items = row.items;
     if (row.raw !== undefined) base.raw = row.raw;
 
-    const match = categorize(base, opts.rules, opts.categories);
+    const match = classify(base, opts.rules, opts.categories);
     if (match) {
       base.categoryId = match.categoryId;
-      base.categorySource = 'rule';
+      base.categorySource = match.source;
+      base.categoryReason = match.reason;
     }
 
     return base;

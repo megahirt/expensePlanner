@@ -7,7 +7,10 @@
  * why a transaction landed where it did.
  */
 
-import type { Category, Rule, RuleMatcher, Transaction } from '@/types/models';
+import type { Category, CategorySource, Rule, RuleMatcher, Transaction } from '@/types/models';
+import { bankCategoryOf, mapBankCategory } from './bankCategory';
+import { lookupMerchant } from './directory';
+import { categoryFromItems, categoryFromMerchantName } from './lexicon';
 
 export interface CategoryMatch {
   categoryId: string;
@@ -65,17 +68,105 @@ export function categorize(
   return null;
 }
 
+/** A category, where it came from, and a sentence saying why. */
+export interface Classification {
+  categoryId: string;
+  source: CategorySource;
+  reason: string;
+  ruleId?: string;
+}
+
+/** Starter rules ship with the app; everything else is a rule the user made. */
+const isStarterRule = (rule: Rule): boolean => !rule.learned && rule.note === 'Starter rule';
+
+/**
+ * Work out a category for a transaction, trying the most trustworthy source
+ * first and stopping at the first that has an answer:
+ *
+ *   1. A rule the user made. Their decision outranks everything automatic.
+ *   2. What an Amazon order contained, so an order of dog food is not filed
+ *      under Shopping just because it came from Amazon.
+ *   3. A starter rule.
+ *   4. The bundled directory of well-known merchants.
+ *   5. The bank's own category column.
+ *   6. A telling word in the merchant's name.
+ *
+ * Every step is a lookup in data that ships with the extension: no network, no
+ * model. The same row always gets the same answer, and the answer comes with
+ * the reason, which is stored and shown.
+ */
+export function classify(
+  t: Transaction,
+  rules: readonly Rule[],
+  categories: readonly Category[],
+): Classification | null {
+  const valid = new Set(categories.map((c) => c.id));
+  const ordered = [...rules].sort((a, b) => a.order - b.order);
+
+  const fromRules = (subset: Rule[], label: string): Classification | null => {
+    const match = categorize(t, subset, categories);
+    if (!match) return null;
+    const rule = subset.find((r) => r.id === match.ruleId)!;
+    return {
+      categoryId: match.categoryId,
+      source: 'rule',
+      reason: `${label}: ${rule.matchers.map(describeMatcher).join(' and ')}`,
+      ruleId: match.ruleId,
+    };
+  };
+
+  const own = fromRules(ordered.filter((r) => !isStarterRule(r)), 'Your rule');
+  if (own) return own;
+
+  if (t.items && t.items.length > 0) {
+    const items = categoryFromItems(t.items);
+    if (items && valid.has(items.categoryId)) {
+      const others = t.items.length - 1;
+      return {
+        categoryId: items.categoryId,
+        source: 'items',
+        reason: `The order was mostly "${items.itemName}"${others > 0 ? ` (${t.items.length} items)` : ''}`,
+      };
+    }
+  }
+
+  const starter = fromRules(ordered.filter(isStarterRule), 'Starter rule');
+  if (starter) return starter;
+
+  const known = lookupMerchant(t.merchant);
+  if (known && valid.has(known.categoryId)) {
+    return { categoryId: known.categoryId, source: 'directory', reason: `Well-known merchant "${known.matched}"` };
+  }
+
+  const bankLabel = bankCategoryOf(t);
+  const fromBank = bankLabel ? mapBankCategory(bankLabel) : null;
+  if (fromBank && valid.has(fromBank)) {
+    return { categoryId: fromBank, source: 'bank', reason: `Your bank files this under "${bankLabel}"` };
+  }
+
+  const word = categoryFromMerchantName(t.merchant, t.amountCents);
+  if (word && valid.has(word.categoryId)) {
+    return { categoryId: word.categoryId, source: 'keyword', reason: `The name contains "${word.word}"` };
+  }
+
+  return null;
+}
+
 export interface RecategorizeResult {
   changed: Transaction[];
+  /** How many of `changed` moved to a different category (the rest only gained
+   *  an explanation). */
+  categoryChanges: number;
   /** Rows left alone because the user had categorized them by hand. */
   skippedManual: number;
 }
 
 /**
- * Re-run rules over existing transactions.
+ * Re-run categorization over existing transactions.
  *
- * Manual assignments are never touched. Editing your rules should fix the rows
- * you never got to, not silently undo the ones you already decided about.
+ * Manual assignments are never touched, and neither are categories taken from
+ * a matched Amazon order in Review. Editing your rules should fix the rows you
+ * never got to, not silently undo the ones you already decided about.
  */
 export function recategorizeAll(
   transactions: readonly Transaction[],
@@ -83,6 +174,7 @@ export function recategorizeAll(
   categories: readonly Category[],
 ): RecategorizeResult {
   const changed: Transaction[] = [];
+  let categoryChanges = 0;
   let skippedManual = 0;
 
   for (const t of transactions) {
@@ -90,18 +182,21 @@ export function recategorizeAll(
       skippedManual++;
       continue;
     }
-    const match = categorize(t, rules, categories);
+    if (t.categorySource === 'linked') continue;
+
+    const match = classify(t, rules, categories);
     const nextId = match?.categoryId ?? null;
-    if (nextId !== t.categoryId) {
-      changed.push({
-        ...t,
-        categoryId: nextId,
-        categorySource: nextId ? 'rule' : 'default',
-      });
-    }
+    const nextSource: CategorySource = match?.source ?? 'default';
+    if (nextId === t.categoryId && nextSource === t.categorySource && match?.reason === t.categoryReason) continue;
+
+    const next: Transaction = { ...t, categoryId: nextId, categorySource: nextSource };
+    if (match) next.categoryReason = match.reason;
+    else delete next.categoryReason;
+    if (nextId !== t.categoryId) categoryChanges++;
+    changed.push(next);
   }
 
-  return { changed, skippedManual };
+  return { changed, categoryChanges, skippedManual };
 }
 
 /**
@@ -112,7 +207,7 @@ export function recategorizeAll(
  * covers every future visit rather than just this one receipt.
  */
 export function proposeRuleFromTransaction(
-  t: Transaction,
+  t: Pick<Transaction, 'merchant'>,
   categoryId: string,
   order: number,
   id: string,
