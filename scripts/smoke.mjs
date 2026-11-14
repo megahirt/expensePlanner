@@ -484,12 +484,13 @@ try {
 
   // ---- Delete all data: empties your side only ----
   await page.click('.nav button:has-text("Settings")');
-  page.once('dialog', (dialog) => void dialog.dismiss());
   await page.click('button.danger:has-text("Delete all my data")');
+  await page.click('.confirm-box button:has-text("Cancel")');
   check('cancelling the confirmation deletes nothing', (await heldNow()) === mine, `${await heldNow()}`);
 
-  page.once('dialog', (dialog) => void dialog.accept());
   await page.click('button.danger:has-text("Delete all my data")');
+  check('the confirmation says how much will go', /cannot be undone/.test((await page.textContent('.confirm-box')) ?? ''));
+  await page.click('.confirm-box button:has-text("Yes, delete everything")');
   await page.waitForSelector('.callout.notice:has-text("deleted")', { timeout: 10_000 });
   check('Delete all my data empties your data', (await heldNow()) === 0, `${await heldNow()} left`);
   check('starter categories come back after deleting', (await page.locator('.chips .chip').count()) > 5);

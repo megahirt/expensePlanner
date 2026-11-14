@@ -17,7 +17,7 @@ You need to do this once. It takes about a minute.
 
 1. **Download the extension.** Go to the
    [Releases page](../../releases/latest) and download the file named
-   `expenseplanner-<version>.zip`.
+   `expenseplanner-<version>-chrome.zip`.
 2. **Unzip it.** Double-click the downloaded file. You will get a folder — put it
    somewhere you will not accidentally delete, like your Documents folder. *(Chrome
    reads the extension from this folder every time it starts, so if you move or
@@ -45,13 +45,13 @@ Your data is untouched by an update — it lives in the browser, not in the fold
 
 ### Want one-click installs and automatic updates instead?
 
-Publishing to the Chrome Web Store as an **Unlisted** listing gives exactly that:
-a private link that installs in one click and updates itself, without the
-extension being searchable or public. It costs a one-time $5 developer
-registration. Everything needed for that is prepared in [`store/`](store/) —
-listing text, privacy policy and permission justifications — and the build
-already emits the store-ready package (`-webstore.zip`), so no code changes are
-needed.
+Publishing to the Chrome Web Store gives exactly that. The release pipeline
+uploads each tagged version to the store on its own once a few one-time steps
+are done (a $5 developer registration, the first upload by hand, and a service
+account). Those steps are in
+[`docs/chrome-web-store-setup.md`](docs/chrome-web-store-setup.md); the listing
+text, screenshots and permission justifications are ready in
+[`store/chrome/`](store/chrome/).
 
 ---
 
@@ -170,7 +170,8 @@ Then load `dist/` via `chrome://extensions` → Developer mode → Load unpacked
 | `npm test` | Unit tests (parsers, dedupe, rules, exports) |
 | `npm run smoke` | Loads the built extension in real Chromium and drives the UI |
 | `npm run verify` | Typecheck, lint, tests, build and smoke test |
-| `npm run package` | Builds the release zips into `release/` |
+| `npm run package` | Zips the build into `release/`, with a checksum |
+| `npm run store:assets` | Remakes the Chrome Web Store screenshots in `store/chrome/` |
 | `npm run chromium` | Builds, then opens a Chromium window with the extension loaded |
 | `npm run chromium:demo` | The same, opened straight into the demo household |
 | `npm run demo:data` | Regenerates the demo files in `public/demo/` |
@@ -220,15 +221,32 @@ generator and that the app reads them back as intended.
 
 ### Cutting a release
 
-Bump the version in **both** `package.json` and `public/manifest.json`, then tag:
+The tag is the only source of the version. `package.json` and
+`public/manifest.json` stay at `0.0.0`; the build writes the real version into
+the built manifest, so there is nothing to bump.
+
+```bash
+git checkout main && git pull
+```
 
 ```bash
 git tag v0.2.0 && git push origin v0.2.0
 ```
 
-CI verifies the tag matches both files, runs everything, packages the zips,
-unzips the release and runs the browser test against *that* — the artifact people
-actually download — then publishes it.
+The release workflow then:
+
+1. checks the tag is `vX.Y.Z` and points at a commit on `main`;
+2. runs the typecheck, lint, unit tests and browser test, builds with the tag's
+   version, zips it, and runs the browser test again against the unzipped zip,
+   the file people actually get;
+3. publishes a GitHub Release with `expenseplanner-<version>-chrome.zip` and
+   its checksum;
+4. uploads the zip to the Chrome Web Store and submits it for review, after you
+   approve the `release` environment. A reviewed update waits for your
+   **Publish** click in the store dashboard. Until the store settings exist this
+   step skips without failing.
+
+Store setup is in [`docs/chrome-web-store-setup.md`](docs/chrome-web-store-setup.md).
 
 ---
 

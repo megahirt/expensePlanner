@@ -312,7 +312,7 @@ button.link:hover { text-decoration: underline; }
 .table-wrap { padding: 0; overflow: hidden; }
 .thead, .trow {
   display: grid;
-  grid-template-columns: 34px 96px minmax(140px, 1.1fr) minmax(160px, 1.6fr) minmax(110px, 0.8fr) minmax(130px, 0.9fr) 130px;
+  grid-template-columns: 34px 118px minmax(140px, 1.1fr) minmax(160px, 1.6fr) minmax(110px, 0.8fr) minmax(130px, 0.9fr) 130px;
   align-items: center;
 }
 .thead {
@@ -636,3 +636,9 @@ table.categorize button.suggestion { white-space: nowrap; }
 button.danger { border-color: var(--danger); color: var(--danger); background: transparent; }
 button.danger:hover { background: var(--danger-soft); }
 .callout.notice { margin-bottom: 16px; }
+
+.confirm-box { border: 1px solid var(--border, currentColor); border-radius: 8px; padding: 12px 14px; max-width: 640px; }
+.confirm-box.danger { border-color: var(--danger); background: var(--danger-soft); }
+.confirm-box p { margin: 0 0 10px; }
+button.danger.solid { background: var(--danger); color: #fff; }
+button.danger.solid:hover { background: var(--danger); filter: brightness(0.92); }

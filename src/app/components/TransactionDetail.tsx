@@ -17,6 +17,15 @@ export function TransactionDetail({ transaction, onClose }: { transaction: Trans
   const [notes, setNotes] = useState(transaction.notes ?? '');
   const [offerRule, setOfferRule] = useState<string | null>(null);
 
+  // Escape closes the panel, as people expect of anything that slides over a page.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   useEffect(() => {
     setNotes(transaction.notes ?? '');
     setOfferRule(null);

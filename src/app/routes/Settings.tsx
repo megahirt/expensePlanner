@@ -105,15 +105,12 @@ export function SettingsRoute({ filters }: { filters: Filters }) {
         </div>
         {workspace === 'demo' && (
           <div className="actions left">
-            <button
-              onClick={() => {
-                if (window.confirm('Reset the demo household? Everything you changed in the demo is discarded. Your own data is not affected.')) {
-                  void resetDemo();
-                }
-              }}
-            >
-              Reset demo data
-            </button>
+            <ConfirmButton
+              label="Reset demo data"
+              question="Reset the demo household? Everything you changed in the demo is discarded. Your own data is not affected."
+              confirmLabel="Yes, reset the demo"
+              onConfirm={() => void resetDemo()}
+            />
           </div>
         )}
       </section>
@@ -261,21 +258,15 @@ export function SettingsRoute({ filters }: { filters: Filters }) {
               again. The demo household is not affected.
             </p>
             <div className="actions left">
-              <button
-                className="danger"
-                onClick={() => {
-                  const n = transactions.length.toLocaleString();
-                  if (
-                    window.confirm(
-                      `Delete all your data? This removes ${n} ${transactions.length === 1 ? 'transaction' : 'transactions'} and every rule, category and match you made. It cannot be undone.`,
-                    )
-                  ) {
-                    void clearMyData();
-                  }
-                }}
-              >
-                Delete all my data
-              </button>
+              <ConfirmButton
+                danger
+                label="Delete all my data"
+                question={`Delete all your data? This removes ${transactions.length.toLocaleString()} ${
+                  transactions.length === 1 ? 'transaction' : 'transactions'
+                } and every rule, category and match you made. It cannot be undone.`}
+                confirmLabel="Yes, delete everything"
+                onConfirm={() => void clearMyData()}
+              />
             </div>
           </>
         ) : (
@@ -285,6 +276,57 @@ export function SettingsRoute({ filters }: { filters: Filters }) {
           </p>
         )}
       </section>
+    </div>
+  );
+}
+
+/**
+ * A button that asks before it acts, in the page itself.
+ *
+ * Not `window.confirm`: a browser driven by automation (including this
+ * project's own `npm run chromium` window) dismisses native dialogs on its
+ * own, which would silently turn the button into one that never works.
+ */
+function ConfirmButton({
+  label,
+  question,
+  confirmLabel,
+  danger = false,
+  onConfirm,
+}: {
+  label: string;
+  question: string;
+  confirmLabel: string;
+  danger?: boolean;
+  onConfirm: () => void;
+}) {
+  const [asking, setAsking] = useState(false);
+
+  if (!asking) {
+    return (
+      <button className={danger ? 'danger' : undefined} onClick={() => setAsking(true)}>
+        {label}
+      </button>
+    );
+  }
+
+  return (
+    <div className={`confirm-box ${danger ? 'danger' : ''}`} role="alertdialog" aria-label={label}>
+      <p>{question}</p>
+      <div className="actions left">
+        <button
+          className={danger ? 'danger solid' : 'primary'}
+          onClick={() => {
+            setAsking(false);
+            onConfirm();
+          }}
+        >
+          {confirmLabel}
+        </button>
+        <button autoFocus onClick={() => setAsking(false)}>
+          Cancel
+        </button>
+      </div>
     </div>
   );
 }

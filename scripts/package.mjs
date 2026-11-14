@@ -1,15 +1,14 @@
 /**
  * Package the built extension for release.
  *
- * Produces two zips from the same `dist/`:
+ * Produces, from `dist/`:
  *
- *   expenseplanner-<version>.zip           install via Load unpacked
- *   expenseplanner-<version>-webstore.zip  upload to the Chrome Web Store
+ *   release/expenseplanner-<version>-chrome.zip   the Chrome Web Store upload,
+ *                                                 and what "Load unpacked" uses
+ *   release/SHA256SUMS.txt                        its checksum
  *
- * They are byte-identical in content today — the Web Store wants exactly this
- * zip — but they are emitted separately so the release page can label them for
- * their two very different audiences, and so store-only requirements can be
- * added later without changing what people download to install by hand.
+ * The version is whatever the build stamped into dist/manifest.json (see
+ * scripts/stamp-version.mjs): the release tag in CI, the newest tag locally.
  *
  * There is deliberately no .crx. Chrome has refused to install off-store CRX
  * files since 2015 (they are accepted and then auto-disabled with "can only be
@@ -20,7 +19,8 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -35,29 +35,29 @@ if (!existsSync(join(dist, 'manifest.json'))) {
 }
 
 const manifest = JSON.parse(readFileSync(join(dist, 'manifest.json'), 'utf8'));
-const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 
-// A manifest version that disagrees with package.json is the classic way to
-// ship a build that installs but never updates, so it is a hard error.
-if (manifest.version !== pkg.version) {
-  console.error(
-    `Version mismatch: manifest.json says ${manifest.version}, package.json says ${pkg.version}.`,
-  );
+// The store rejects anything that can reach a development server, and a
+// manifest that mentions one means this is not a release build.
+if (/localhost|127\.0\.0\.1/.test(JSON.stringify(manifest))) {
+  console.error('dist/manifest.json mentions localhost: not a release build.');
   process.exit(1);
 }
-
-// Source maps are useful in dist/ for debugging a local build, but they roughly
-// triple the download and are not wanted in a release.
-const args = ['-r', '-q', '-X', 'PLACEHOLDER', '.', '-x', '*.map'];
 
 rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 
-for (const suffix of ['', '-webstore']) {
-  const zipPath = join(outDir, `expenseplanner-${manifest.version}${suffix}.zip`);
-  execFileSync('zip', [...args.slice(0, 3), zipPath, '.', '-x', '*.map'], { cwd: dist, stdio: 'inherit' });
-  console.log(`wrote ${zipPath}`);
-}
+// Source maps are useful in dist/ for debugging a local build, but they roughly
+// triple the download and are not wanted in a release.
+const zipName = `expenseplanner-${manifest.version}-chrome.zip`;
+const zipPath = join(outDir, zipName);
+execFileSync('zip', ['-r', '-q', '-X', zipPath, '.', '-x', '*.map'], { cwd: dist, stdio: 'inherit' });
 
-console.log(`\nVersion ${manifest.version} packaged.`);
-console.log('Install: unzip, then chrome://extensions → Developer mode → Load unpacked.');
+const sha = createHash('sha256').update(readFileSync(zipPath)).digest('hex');
+writeFileSync(join(outDir, 'SHA256SUMS.txt'), `${sha}  ${zipName}\n`);
+
+console.log(`wrote ${zipPath}`);
+console.log(`sha256 ${sha}`);
+if (manifest.version === '0.0.0') {
+  console.log('\nVersion is 0.0.0: no release tag was found. Fine for a local look, not for the store.');
+}
+console.log('\nInstall by hand: unzip, then chrome://extensions → Developer mode → Load unpacked.');

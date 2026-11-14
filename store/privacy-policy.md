@@ -1,6 +1,6 @@
 # expensePlanner privacy policy
 
-_Last updated: 2026-09-07_
+_Last updated: 2026-11-13_
 
 ## The short version
 
@@ -18,6 +18,10 @@ resulting records in your browser's local IndexedDB storage:
 - Amazon order numbers, item names, prices and return/cancellation status
 - categories, rules, notes and tags you create
 - a history of your imports, so they can be undone
+
+The extension also includes a made-up demo household, for trying it out. That
+data ships inside the extension, describes no real person or account, and is
+kept in a separate local database from anything you import.
 
 This data is held in your Chrome profile on this computer. It is not synced to
 any Google account, and it is not accessible to the author of this extension or
@@ -54,8 +58,9 @@ outside the extension.
 
 ## Removing your data
 
-Removing the extension from `chrome://extensions` deletes its local storage and
-with it every record described above. Export a backup first if you want to keep
+**Delete all my data** in the extension's Settings removes every record
+described above at once. Removing the extension from `chrome://extensions` also
+deletes its local storage and everything in it. Export a backup first if you want to keep
 your data.
 
 ## Contact
